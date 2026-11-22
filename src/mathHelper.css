@@ -1,0 +1,63 @@
+/* Voluntary learning scaffold: compact closed state, 4 steps when opened */
+.math-aid{margin:12px 0 15px;width:100%;max-width:100%}
+.math-aid button{cursor:pointer;font-family:inherit}
+.math-aid-toggle{width:100%;display:flex;align-items:center;gap:9px;padding:12px 14px;border-radius:13px;border:2px solid #8fd4db;background:#ebfffd;color:#195d78;font-size:13px;font-weight:900;box-shadow:0 3px 0 #caeaea}
+.math-aid-toggle>span{margin-left:auto;font-size:10px;background:#c4f1e7;padding:4px 8px;border-radius:30px}
+.math-aid-toggle:hover{background:#dbf8f3}
+.math-aid-panel{border:2px solid #91d7d6;border-radius:16px;overflow:hidden;background:#f9fefa;box-shadow:0 6px 22px #144e6b17}
+.math-aid-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;background:#dff8f4;border-bottom:1px solid #bfe9e7}
+.math-aid-heading>div{display:grid;gap:3px}
+.math-aid-heading b{font-size:15px;color:#19597a}
+.math-aid-heading small{font-size:10px;line-height:1.5;color:#4f7d88}
+.math-aid-heading>button{border:1px solid #c3dce0;border-radius:50%;background:#fff;color:#296180;width:32px;height:32px;display:grid;place-items:center;flex-shrink:0}
+.math-aid-stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:#effaf8;padding:8px}
+.math-aid-stages button{border:0;border-radius:10px;background:transparent;color:#6b8b94;padding:7px 3px;display:grid;justify-items:center;gap:3px;min-width:0}
+.math-aid-stages button>span{display:grid;place-items:center;border-radius:50%;height:25px;width:25px;border:1px solid #b0cbd2;background:#fff;font-weight:900;font-size:12px}
+.math-aid-stages button small{font-size:10px;font-weight:800;line-height:1.15}
+.math-aid-stages button.active{background:#d9f3f5;color:#165d7d}
+.math-aid-stages button.active>span{background:#1a88aa;color:#fff;border-color:#1a88aa}
+.math-aid-stages button.visited>span{background:#dcf4e9;border-color:#75be9c;color:#237c60}
+.math-aid-body{padding:15px 16px 8px}
+.math-aid-body h3{color:#235e80;font-size:18px;line-height:1.2;margin:1px 0 7px;font-family:'Baloo 2',sans-serif}
+.math-aid-body>p{font-size:13px;line-height:1.55;margin:0 0 10px;color:#527287}
+.math-aid-insight,.math-aid-topic{border:1px solid #cde8c3;background:#f1fbe6;border-radius:12px;padding:11px 12px}
+.math-aid-insight b{display:flex;align-items:center;gap:5px;font-size:12px;color:#367152}
+.math-aid-insight p{margin:6px 0;font-size:12px;line-height:1.55;color:#4f745a}
+.math-aid-numbers{display:grid;gap:6px;margin-top:9px}
+.math-aid-numbers>small{font-size:11px;color:#5c8070;font-weight:800}
+.math-aid-numbers>div{display:flex;gap:6px;flex-wrap:wrap}
+.math-aid-numbers span{border:1px solid #94cfac;background:#fff;border-radius:9px;padding:5px 11px;font-weight:900;color:#206c50}
+.math-aid-operators .math-aid-topic{display:flex;align-items:center;gap:8px;font-size:12px;color:#427752;line-height:1.45;margin:0 0 9px}
+.math-aid-operators>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.math-aid-operators>div button{display:flex;align-items:center;gap:8px;min-width:0;text-align:left;border-radius:11px;border:1px solid #c4e0ea;background:#fff;padding:10px}
+.math-aid-operators>div button>strong{font-size:22px;width:29px;flex-shrink:0;text-align:center;color:#3088a5}
+.math-aid-operators>div button span{display:grid;gap:4px;min-width:0}
+.math-aid-operators>div button b{font-size:12px;color:#285f78}
+.math-aid-operators>div button small{font-size:10px;color:#7290a1;line-height:1.45}
+.math-aid-operators>div button.chosen{border:2px solid #20a283;background:#e7faf3}
+.math-aid-operators>div button.chosen svg{color:#248c6a;flex-shrink:0}
+.math-aid-choice{font-size:11px;color:#376e58;margin:9px 0 3px}
+.math-aid-calculator{background:#f0faff;border:1px solid #c7e3ef;border-radius:14px;padding:12px;max-width:340px;margin:0 auto}
+.math-aid-calculator label{display:block;font-size:12px;font-weight:800;color:#336d8b;margin:0 0 7px}
+.math-aid-calculator input{width:100%;border:2px solid #b4d9e5;border-radius:10px;min-height:46px;background:#fff;color:#1a4a70;padding:10px 12px;text-align:right;font-size:23px;font-weight:900;font-family:'Nunito',sans-serif}
+.math-aid-keypad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:9px 0}
+.math-aid-keypad button{min-width:0;min-height:45px;border:1px solid #bbdcea;border-radius:8px;background:#fff;font-size:20px;font-weight:900;color:#265978}
+.math-aid-keypad button:hover{background:#dff5ff}
+.math-aid-keypad button.operation{background:#e2f4ff;color:#2478ac}
+.math-aid-keypad button.calculate{background:#247e88;color:#fff}
+.math-aid-keypad button.clear{color:#ae5633;background:#fff1e9}
+.math-aid-calculator>small{display:block;font-size:10px;line-height:1.5;color:#66849a;margin-top:6px}
+.math-aid-error{font-size:12px;color:#b44343;margin:5px 0}
+.math-aid-result{border-radius:10px;border:1px solid #76caaa;background:#e2f9ee;color:#245e4c;padding:10px;margin-top:7px;font-size:12px}
+.math-aid-result strong{font-size:19px;margin-left:8px}
+.math-aid-checklist{display:grid;gap:8px}
+.math-aid-checklist p{font-size:12px;line-height:1.5;margin:0;border:1px solid #d4eadc;border-radius:9px;background:#f0fbf2;padding:10px;color:#437959}
+.math-aid-checklist p.math-aid-after{background:#e7f5ff;color:#315e86}
+.math-aid-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:11px 12px;background:#f0fafb;border-top:1px solid #d8e8ec}
+.math-aid-footer>span{font-size:11px;font-weight:900;color:#618096}
+.math-aid-footer>div{display:flex;gap:5px}
+.math-aid-footer button{display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid #bfd9e3;border-radius:9px;background:#fff;color:#335f77;font-size:11px;font-weight:900;padding:8px 9px}
+.math-aid-footer button.next{background:#218b83;color:#fff;border-color:#218b83}
+.math-aid-footer button:disabled{opacity:.4;cursor:default}
+@media(max-width:540px){.math-aid-stages button small{font-size:9px}.math-aid-operators>div{grid-template-columns:1fr}.math-aid-body{padding:11px}.math-aid-heading{padding:10px}.math-aid-footer{padding:8px}.math-aid-footer button{padding:8px 6px}}
+@media(prefers-reduced-motion:reduce){.math-aid *{scroll-behavior:auto;animation:none!important}}
