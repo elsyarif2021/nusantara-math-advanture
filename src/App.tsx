@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
-import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift,Users} from 'lucide-react';
+import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronDown,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift,Users} from 'lucide-react';
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
 import SuperAdminTeachers from './SuperAdminTeachers';
@@ -29,6 +29,7 @@ export default function App(){
  const[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
  const[island,setIsland]=useState(0),[questions,setQuestions]=useState<Question[]>([]),[questionIndex,setQuestionIndex]=useState(0),[answer,setAnswer]=useState(''),[correct,setCorrect]=useState(0),[awardedXP,setAwardedXP]=useState(0);
  const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Question[]>([]);
+ const[teacherAuthed,setTeacherAuthed]=useState(false),[roleMenuOpen,setRoleMenuOpen]=useState(false);
  const[adminTab,setAdminTab]=useState<'overview'|'teachers'|'students'|'questions'|'settings'>('overview');
  const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>(()=>emptyQuestion()),[adding,setAdding]=useState(false);
  const[questionGrade,setQuestionGrade]=useState('Semua'),[questionTopic,setQuestionTopic]=useState('Semua'),[questionSearch,setQuestionSearch]=useState(''),[questionRegion,setQuestionRegion]=useState('Semua'),[confirmDelete,setConfirmDelete]=useState<string|null>(null),[questionPage,setQuestionPage]=useState(1);
@@ -36,7 +37,7 @@ export default function App(){
  const[modeGrade,setModeGrade]=useState('Kelas 1'),[modeCulture,setModeCulture]=useState('sumatra'),[modeValue,setModeValue]=useState<'mixed'|'manual'>('mixed'),[modeLoading,setModeLoading]=useState(false);
  const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(gradeTopics['Kelas 1'][0]),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false),[moreOpen,setMoreOpen]=useState(false);
- const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
+ const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null),roleMenuRef=useRef<HTMLDivElement|null>(null);
  const rank=student?(student.completed.length>=7?'Penjelajah Nusantara':student.completed.length>=4?'Pelaut Emas':student.completed.length>=1?'Petualang Hebat':'Petualang Baru'):'Ayo Jadi Petualang';
  const daily=student?.recent.some(x=>new Date(x.date).toDateString()===new Date().toDateString())??false;
  const gradeIndex=Number(chosenGrade.replace('Kelas ','')),profileGrade=student?.grade??chosenGrade;
@@ -72,10 +73,18 @@ export default function App(){
  useEffect(()=>{if(!audioRef.current)return;if(music)audioRef.current.play().catch(()=>{setMusic(false);setNotice('Musik belum tersedia. Narasi suara tetap bisa digunakan.');});else audioRef.current.pause()},[music]);
  useEffect(()=>{if(view!=='admin'||!admin)return;loadAdmin();const timer=setInterval(loadAdmin,8000);return()=>clearInterval(timer)},[view,admin]);
  useEffect(()=>{const pop=()=>setView(window.location.pathname==='/admin'?'admin':window.location.pathname==='/guru'?'teacher':'home');window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)},[]);
+ useEffect(()=>{
+  if(!roleMenuOpen)return;
+  const outside=(event:PointerEvent)=>{if(!roleMenuRef.current?.contains(event.target as Node))setRoleMenuOpen(false)};
+  const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setRoleMenuOpen(false)};
+  document.addEventListener('pointerdown',outside);
+  document.addEventListener('keydown',escape);
+  return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape)};
+ },[roleMenuOpen]);
  useEffect(()=>{if(view!=='admin')return;api('health').then(r=>setAdminSetup(Boolean(r.admin))).catch(()=>setAdminSetup(null));api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>setAdmin(false))},[view]);
  useEffect(()=>{if(view!=='admin'||!admin)return;let cancelled=false;setModeLoading(true);api('public/mission-config?grade='+encodeURIComponent(modeGrade)+'&culture='+encodeURIComponent(modeCulture)).then(r=>{if(!cancelled)setModeValue(r.mode==='manual'?'manual':'mixed')}).catch(e=>{if(!cancelled)setError(e.message)}).finally(()=>{if(!cancelled)setModeLoading(false)});return()=>{cancelled=true}},[view,admin,modeGrade,modeCulture]);
  function say(t:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(t);utter.lang='id-ID';utter.rate=.87;window.speechSynthesis.speak(utter)}
- function navigate(next:View){setMoreOpen(false);setView(next);setError('');const target=next==='admin'?'/admin':next==='teacher'?'/guru':invite&&inviteStatus==='valid'?'/gabung/'+invite.token:'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
+ function navigate(next:View){setMoreOpen(false);setRoleMenuOpen(false);setView(next);setError('');const target=next==='admin'?'/admin':next==='teacher'?'/guru':invite&&inviteStatus==='valid'?'/gabung/'+invite.token:'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
  function openAdmin(){navigate('admin');}
  function openTeacher(){navigate('teacher');}
  function mapScroll(){navigate('home');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),100)}
@@ -163,7 +172,7 @@ export default function App(){
   <audio ref={audioRef} src="/resources/nusantara-ceria.wav" loop preload="none"/>
   <header className="topbar">
    <button className="brand" onClick={()=>navigate('home')} aria-label="Beranda Nusantara Math Adventure"><span className="wheel">🧭</span><span><b>Nusantara</b><strong>Math Adventure</strong></span></button>
-   <nav className="topnav topnav-simple" aria-label="Menu utama">
+   {view!=='admin'&&view!=='teacher'&&<nav className="topnav topnav-simple" aria-label="Menu utama">
     <button className={view==='home'?'active':''} onClick={()=>navigate('home')}><Home size={17}/> Beranda</button>
     <button className={view==='materi'?'active':''} onClick={()=>navigate('materi')}><BookOpen size={17}/> Materi</button>
     <div className="nav-more">
@@ -174,11 +183,19 @@ export default function App(){
       <button onClick={()=>setVoice(v=>!v)}>{voice?<Headphones size={16}/>:<VolumeX size={16}/>} Narasi {voice?'Aktif':'Nonaktif'}</button>
       <button onClick={()=>setMusic(v=>!v)}>{music?<Volume2 size={16}/>:<VolumeX size={16}/>} Musik {music?'Aktif':'Nonaktif'}</button>
       <div className="nav-more-divider"/>
-      <button onClick={openTeacher}><GraduationCap size={16}/> Portal Guru</button>
      </div>}
     </div>
-   </nav>
-   <div className="top-actions"><button className="admin-header" onClick={openAdmin} aria-label="Masuk sebagai Super Admin"><ShieldCheck size={16}/><span>Masuk Admin</span></button>{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>}</div>
+   </nav>}
+   <div className="top-actions">
+    {!((view==='admin'&&admin)||(view==='teacher'&&teacherAuthed))&&<div className="role-entry" ref={roleMenuRef}>
+     <button type="button" className="role-entry-trigger" aria-expanded={roleMenuOpen} aria-controls="role-entry-list" onClick={()=>{setRoleMenuOpen(x=>!x);setMoreOpen(false)}}><ShieldCheck size={16}/><span>Masuk sebagai</span><ChevronDown size={15} className={roleMenuOpen?'rotated':''}/></button>
+     {roleMenuOpen&&<div id="role-entry-list" className="role-entry-list" role="group" aria-label="Pilih peran administrator">
+      <button type="button" onClick={openTeacher}><GraduationCap size={18}/><span><b>Admin Guru</b><small>Kelola soal dan siswa kelas sendiri</small></span></button>
+      <button type="button" onClick={openAdmin}><ShieldCheck size={18}/><span><b>Super Admin</b><small>Kelola seluruh aplikasi</small></span></button>
+     </div>}
+    </div>}
+    {view!=='admin'&&view!=='teacher'&&(student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>)}
+   </div>
   </header>
   {error&&<div role="alert" className="flash err"><XCircle size={16}/>{error}<button onClick={()=>setError('')} aria-label="Tutup">×</button></div>}
   {notice&&<div className="flash ok"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')} aria-label="Tutup">×</button></div>}
@@ -221,7 +238,7 @@ export default function App(){
    <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('');say('Pertanyaan berikutnya. '+questions[questionIndex+1].question)}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
   </main>}
   {view==='result'&&<main className="inner-page result-page"><div className="result-cup">🏆</div><span className="section-tag">MISI SUKSES!</span><h1>Hebat, {student?.name.split(' ')[0]}!</h1><p>Kamu menyelesaikan petualangan di Pulau {islandData[island].name}.</p><div className="result-number">{correct} <small>dari {questions.length} soal benar</small></div><div className="result-stars">🌟 +{awardedXP} XP diperoleh</div><p>{islandData[island].fact}</p><div className="profile-buttons"><button className="big-primary" onClick={()=>navigate('home')}>🗺️ Kembali ke Peta</button><button className="outline-button" onClick={()=>startMission(island)}><RefreshCw size={16}/> Ulangi Misi</button><button className="outline-button" onClick={certificate}><Download size={16}/> Sertifikat</button></div></main>}
-  {view==='teacher'&&<TeacherPortal onHome={()=>navigate('home')}/>}
+  {view==='teacher'&&<TeacherPortal onHome={()=>navigate('home')} onAuthChange={setTeacherAuthed}/>}
   {view==='admin'&&<main className="inner-page admin-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke beranda</button><span className="section-tag"><ShieldCheck size={17}/> HAK AKSES PENUH · SUPER ADMIN</span><h1>Dashboard Super Admin</h1><p>Kelola seluruh akun guru, tautan kelas, progres siswa, bank soal, dan pengaturan aplikasi.</p>
    {!admin?<div className="admin-login"><div className="login-mascot">🔐</div><h2>Masuk sebagai Super Admin</h2><p>Hak akses penuh hanya untuk Super Admin. Guru masuk melalui portal <a href="/guru">Masuk Guru</a> dengan akun tersendiri.</p>{adminSetup===false&&<div className="admin-setup-warning"><b>⚠️ Login admin belum diaktifkan</b><p>Atur <code>ADMIN_PASSWORD</code> (minimal 8 karakter) dan <code>SESSION_SECRET</code> (minimal 32 karakter acak) pada Vercel → Settings → Environment Variables → Production. Lakukan redeploy setelah menyimpan. Jangan taruh kata sandi dalam kode GitHub.</p><a href="https://vercel.com/elsyarif2021s-projects/nusantara-math-advanture/settings/environment-variables" target="_blank" rel="noopener noreferrer">Buka Pengaturan Vercel ↗</a></div>}{adminSetup===true&&<p className="admin-ready-label">✅ Sistem login administrator siap dipakai.</p>}<label>Kata Sandi Admin<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Kata sandi administrator" autoComplete="current-password" onKeyDown={e=>e.key==='Enter'&&loginAdmin()}/></label><button disabled={busy||adminSetup===false} className="big-primary" onClick={loginAdmin}>{busy?'Memeriksa…':'Masuk Dashboard Admin'}</button><p className="admin-login-footnote">Siswa tetap masuk menggunakan nama dan kelas tanpa PIN.</p></div>:
    <div className="admin-section">
