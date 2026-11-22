@@ -23,6 +23,7 @@ export default function App(){
  const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Question[]>([]);
  const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>(()=>emptyQuestion()),[adding,setAdding]=useState(false);
  const[questionGrade,setQuestionGrade]=useState('Semua'),[questionTopic,setQuestionTopic]=useState('Semua'),[questionSearch,setQuestionSearch]=useState(''),[questionRegion,setQuestionRegion]=useState('Semua'),[confirmDelete,setConfirmDelete]=useState<string|null>(null),[questionPage,setQuestionPage]=useState(1);
+ const[modeGrade,setModeGrade]=useState('Kelas 1'),[modeCulture,setModeCulture]=useState('sumatra'),[modeValue,setModeValue]=useState<'mixed'|'manual'>('mixed'),[modeLoading,setModeLoading]=useState(false);
  const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(gradeTopics['Kelas 1'][0]),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false);
  const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
@@ -38,6 +39,7 @@ export default function App(){
  useEffect(()=>{if(view!=='admin'||!admin)return;loadAdmin();const timer=setInterval(loadAdmin,8000);return()=>clearInterval(timer)},[view,admin]);
  useEffect(()=>{const pop=()=>setView(window.location.pathname==='/admin'?'admin':'home');window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)},[]);
  useEffect(()=>{if(view!=='admin')return;api('health').then(r=>setAdminSetup(Boolean(r.admin))).catch(()=>setAdminSetup(null));api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>setAdmin(false))},[view]);
+ useEffect(()=>{if(view!=='admin'||!admin)return;let cancelled=false;setModeLoading(true);api('public/mission-config?grade='+encodeURIComponent(modeGrade)+'&culture='+encodeURIComponent(modeCulture)).then(r=>{if(!cancelled)setModeValue(r.mode==='manual'?'manual':'mixed')}).catch(e=>{if(!cancelled)setError(e.message)}).finally(()=>{if(!cancelled)setModeLoading(false)});return()=>{cancelled=true}},[view,admin,modeGrade,modeCulture]);
  function say(t:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(t);utter.lang='id-ID';utter.rate=.87;window.speechSynthesis.speak(utter)}
  function navigate(next:View){setView(next);setError('');const target=next==='admin'?'/admin':'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
  function openAdmin(){navigate('admin');}
@@ -53,9 +55,10 @@ export default function App(){
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  function signout(){localStorage.removeItem('nma-student-id');setStudent(null);setName('');setMusic(false);navigate('home')}
  async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
- try{const r=await api('public/questions?grade='+encodeURIComponent(s.grade));const topic=gradeTopics[s.grade][i];
+ try{const [r,config]=await Promise.all([api('public/questions?grade='+encodeURIComponent(s.grade)),api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+islandData[i].id)]);const topic=gradeTopics[s.grade][i];
   const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===islandData[i].id));
-  const generated=makeMission(s.grade,i,8);const qs=[...fromBank.slice(0,3),...generated].slice(0,8);
+  const qs=config.mode==='manual'?fromBank.slice(0,8):[...fromBank.slice(0,3),...makeMission(s.grade,i,8)].slice(0,8);
+  if(qs.length<1)throw Error('Belum ada soal aktif untuk '+s.grade+' di '+islandData[i].name+'. Hubungi guru untuk mengisi Bank Soal.');
   setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+islandData[i].fact+' Pertanyaan pertama. '+qs[0].question);
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function finish(){if(!student)return;const wasDone=student.completed.includes(island+1),earned=correct*25+(wasDone?0:50)+(daily?0:20),completed=[...new Set([...student.completed,island+1])];
@@ -86,6 +89,18 @@ export default function App(){
   const saved=await api('admin/questions/bulk',{method:'POST',body:JSON.stringify({questions:items})});
   await refreshQuestions();setNotice(saved.count+' soal AI berhasil ditambahkan. Periksa kunci dan pembahasannya sebelum digunakan.');
  }catch(e:any){setError(e.message)}finally{setAiBusy(false)}}
+ async function saveMode(){setBusy(true);setError('');try{
+  await api('admin/mission-config',{method:'PUT',body:JSON.stringify({grade:modeGrade,culture:modeCulture,mode:modeValue})});
+  setNotice('Pengaturan sumber soal '+modeGrade+' di '+islandData.find(z=>z.id===modeCulture)?.name+' berhasil disimpan.');
+ }catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function importStarterQuestions(){const stage=islandData.findIndex(z=>z.id===modeCulture);if(stage<0)return;
+  setBusy(true);setError('');try{
+   const questions=makeMission(modeGrade,stage,8).map(q=>({...q,active:true}));
+   const result=await api('admin/questions/bulk',{method:'POST',body:JSON.stringify({questions})});
+   await refreshQuestions();
+   setQuestionGrade(modeGrade);setQuestionTopic(gradeTopics[modeGrade][stage]);setQuestionRegion(modeCulture);setQuestionPage(1);
+   setNotice(result.count+' soal latihan bawaan berhasil diimpor ke Bank Soal, sekarang bisa diedit atau dihapus.');
+  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function saveSchool(){try{const r=await api('school',{method:'PUT',body:JSON.stringify(school)});setSchool(r.school);setNotice('Identitas sekolah disimpan.')}catch(e:any){setError(e.message)}}
  async function excel(){try{const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Perkembangan Siswa');ws.addRow(['Nama','Kelas','XP','Pulau','Misi dimainkan','Diperbarui']);students.forEach(s=>ws.addRow([s.name,s.grade,s.xp,s.completed.length,s.gamesPlayed,s.updatedAt||'']));download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'laporan-nusantara-sd.xlsx')}catch(e:any){setError('Ekspor Excel gagal: '+e.message)}}
  async function pdf(){try{const {jsPDF}=await import('jspdf');const d=new jsPDF();d.setFontSize(18);d.text('Laporan Petualangan Matematika SD',14,20);d.setFontSize(10);let y=33;students.forEach((s,i)=>{if(y>274){d.addPage();y=20}d.text((i+1)+'. '+s.name+' | '+s.grade+' | '+s.xp+' XP | '+s.completed.length+'/7 pulau',14,y);y+=7});d.save('laporan-nusantara-sd.pdf')}catch(e:any){setError(e.message)}}
@@ -151,6 +166,19 @@ export default function App(){
      <div className="admin-title">
       <div><span className="section-tag">⚙️ PENGATURAN SOAL · CRUD</span><h2>📚 Kelola Bank Soal SD ({bank.length})</h2><p>Tambah, lihat, ubah, dan hapus soal kelas 1–6 secara permanen. Pilih kelas, topik, dan pulau agar soal sesuai dengan misi.</p></div>
       <button className="big-primary" disabled={busy} onClick={openNewQuestion}><Plus size={18}/> Tambah Soal Baru</button>
+     </div>
+     <div className="question-mode-panel">
+      <div><h3>🎛️ Sumber Soal Per Kelas & Pulau</h3><p>Pilih soal campuran, atau gunakan hanya soal yang kamu kelola melalui CRUD. Soal bawaan dapat diimpor agar bisa diedit dan dihapus.</p></div>
+      <div className="question-mode-controls">
+       <label>Kelas<select value={modeGrade} onChange={e=>setModeGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select></label>
+       <label>Pulau<select value={modeCulture} onChange={e=>setModeCulture(e.target.value)}>{islandData.map(z=><option key={z.id} value={z.id}>{z.name}</option>)}</select></label>
+       <label>Sumber soal<select value={modeValue} disabled={modeLoading} onChange={e=>setModeValue(e.target.value as 'mixed'|'manual')}><option value="mixed">Campuran: bank + soal otomatis</option><option value="manual">Hanya Bank Soal Guru (CRUD)</option></select></label>
+       <button className="big-primary" disabled={busy||modeLoading} onClick={saveMode}>💾 Simpan Mode</button>
+      </div>
+      <div className="question-mode-footer">
+       <span>📚 {bank.filter(q=>q.grade===modeGrade&&(!q.topic||q.topic===gradeTopics[modeGrade][islandData.findIndex(z=>z.id===modeCulture)])&&(!q.cultureId||q.cultureId===modeCulture)&&q.active!==false).length} soal aktif dari bank tersedia untuk misi ini. {modeValue==='manual'?'Mode hanya bank: misi membutuhkan sedikitnya satu soal aktif.':'Mode campuran: soal otomatis akan melengkapi kuis.'}</span>
+       <button className="outline-button" disabled={busy} onClick={importStarterQuestions}><Plus size={16}/> Impor 8 Soal Bawaan ke Bank</button>
+      </div>
      </div>
      <div className="question-class-tabs" role="group" aria-label="Filter kelas soal">
       <button className={questionGrade==='Semua'?'chosen':''} onClick={()=>{setQuestionGrade('Semua');setQuestionTopic('Semua');setQuestionPage(1)}}>Semua <small>{bank.length}</small></button>
