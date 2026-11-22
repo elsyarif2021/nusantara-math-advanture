@@ -12,6 +12,7 @@ const api=async(path:string,options:RequestInit={})=>{
 function download(blob:Blob,file:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function videoId(url:string){try{const u=new URL(url);if(u.hostname==='youtu.be')return u.pathname.slice(1,12);if(['www.youtube.com','youtube.com','m.youtube.com'].includes(u.hostname))return(u.searchParams.get('v')||u.pathname.split('/embed/')[1]||'').slice(0,11)}catch{}return null}
 const quote=['Matematika itu seru!','Kamu hebat! Terus berlatih, ya!','Setiap soal adalah petualangan baru!','Mari belajar sambil mengenal budaya Indonesia!'];
+const emptyQuestion=(grade='Kelas 1'):Question=>({grade,topic:gradeTopics[grade]?.[0]||'',cultureId:'sumatra',question:'',options:['','','',''],answer:'',explanation:'',imageUrl:'',videoUrl:'',audioUrl:'',active:true});
 export default function App(){
  const[view,setView]=useState<View>(()=>window.location.pathname==='/admin'?'admin':'home');
  const[adminSetup,setAdminSetup]=useState<boolean|null>(null);
@@ -20,7 +21,8 @@ export default function App(){
  const[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
  const[island,setIsland]=useState(0),[questions,setQuestions]=useState<Question[]>([]),[questionIndex,setQuestionIndex]=useState(0),[answer,setAnswer]=useState(''),[correct,setCorrect]=useState(0),[awardedXP,setAwardedXP]=useState(0);
  const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Question[]>([]);
- const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>({question:'',options:['','','',''],answer:'',explanation:'',grade:'Kelas 1',topic:''}),[adding,setAdding]=useState(false);
+ const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>(()=>emptyQuestion()),[adding,setAdding]=useState(false);
+ const[questionGrade,setQuestionGrade]=useState('Semua'),[questionTopic,setQuestionTopic]=useState('Semua'),[questionSearch,setQuestionSearch]=useState(''),[questionRegion,setQuestionRegion]=useState('Semua'),[confirmDelete,setConfirmDelete]=useState<string|null>(null);
  const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(''),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false);
  const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
@@ -52,22 +54,37 @@ export default function App(){
  function signout(){localStorage.removeItem('nma-student-id');setStudent(null);setName('');setMusic(false);navigate('home')}
  async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
  try{const r=await api('public/questions?grade='+encodeURIComponent(s.grade));const topic=gradeTopics[s.grade][i];
-  const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>!q.topic||q.topic===topic);
-  const generated=makeMission(s.grade,i,8);const qs=[...fromBank.slice(0,3).map(q=>({...q,cultureId:islandData[i].id})),...generated].slice(0,8);
+  const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===islandData[i].id));
+  const generated=makeMission(s.grade,i,8);const qs=[...fromBank.slice(0,3),...generated].slice(0,8);
   setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+islandData[i].fact+' Pertanyaan pertama. '+qs[0].question);
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function finish(){if(!student)return;const wasDone=student.completed.includes(island+1),earned=correct*25+(wasDone?0:50)+(daily?0:20),completed=[...new Set([...student.completed,island+1])];
  const p:Student={...student,completed,xp:student.xp+earned,gamesPlayed:student.gamesPlayed+1,recent:[...student.recent,{region:islandData[island].name,score:correct,total:questions.length,date:new Date().toISOString()}].slice(-25)};
  setAwardedXP(earned);setStudent(p);navigate('result');try{const r=await api('progress/'+p.id,{method:'PUT',body:JSON.stringify(p)});setStudent(r.progress||p);setNotice('Hasil petualangan tersimpan!')}catch(e:any){setError('Progres belum tersinkron: '+e.message)}}
  async function loginAdmin(){setBusy(true);setError('');try{const r=await api('admin/login',{method:'POST',body:JSON.stringify({password})});if(!r.user)throw Error('Login tidak berhasil');setAdmin(true);setPassword('');await loadAdmin()}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function loadAdmin(){try{const [m,b]=await Promise.all([api('admin/monitor'),api('bank')]);setStudents(m.students||[]);setBank(b.questions||[]);setAdmin(true)}catch(e:any){setError(e.message);if(e.message.toLowerCase().includes('login'))setAdmin(false)}}
+ async function loadAdmin(){try{const [m,b]=await Promise.all([api('admin/monitor'),api('admin/questions')]);setStudents(m.students||[]);setBank(b.questions||[]);setAdmin(true)}catch(e:any){setError(e.message);if(e.message.toLowerCase().includes('login'))setAdmin(false)}}
  async function logoutAdmin(){await api('admin/logout',{method:'POST'}).catch(()=>{});setAdmin(false);setStudents([]);setBank([]);navigate('home')}
- async function saveBank(items:Question[]){setBusy(true);setError('');try{await api('bank',{method:'PUT',body:JSON.stringify({questions:items})});setBank(items);setAdding(false);setNotice('Bank soal berhasil disimpan.')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function generateAI(){if(!aiTopic.trim())return setError('Isi topik soal terlebih dahulu.');setAiBusy(true);setError('');try{
+ async function refreshQuestions(){const result=await api('admin/questions');setBank(result.questions||[]);return result.questions as Question[]}
+ function openNewQuestion(){const grade=questionGrade==='Semua'?'Kelas 1':questionGrade;setDraft(emptyQuestion(grade));setConfirmDelete(null);setAdding(true);setTimeout(()=>document.getElementById('soal-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
+ function editQuestion(q:Question){setDraft({...q,grade:q.grade||'Kelas 1',topic:gradeTopics[q.grade||'Kelas 1']?.includes(q.topic||'')?q.topic:gradeTopics[q.grade||'Kelas 1']?.[0]||'',cultureId:q.cultureId||'sumatra',options:[...q.options],active:q.active!==false});setAdding(true);setConfirmDelete(null);setTimeout(()=>document.getElementById('soal-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
+ async function submitQuestion(){setBusy(true);setError('');try{
+  const isEdit=Boolean(draft.id),path=isEdit?'admin/questions/'+encodeURIComponent(draft.id!):'admin/questions';
+  await api(path,{method:isEdit?'PUT':'POST',body:JSON.stringify({question:draft})});
+  await refreshQuestions();setAdding(false);setDraft(emptyQuestion(questionGrade==='Semua'?'Kelas 1':questionGrade));
+  setNotice(isEdit?'Perubahan soal berhasil disimpan.':'Soal baru berhasil ditambahkan ke bank soal.');
+ }catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function deleteQuestion(q:Question){if(!q.id)return setError('ID soal tidak ditemukan.');setBusy(true);setError('');try{
+  await api('admin/questions/'+encodeURIComponent(q.id),{method:'DELETE'});
+  await refreshQuestions();setConfirmDelete(null);if(draft.id===q.id){setAdding(false);setDraft(emptyQuestion())}
+  setNotice('Soal berhasil dihapus dari bank soal.');
+ }catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function generateAI(){if(!aiTopic.trim())return setError('Pilih topik soal terlebih dahulu.');setAiBusy(true);setError('');try{
   const r=await api('admin/generate',{method:'POST',body:JSON.stringify({grade:aiGrade,topic:aiTopic,region:aiRegion})});
   const zone=islandData.find(i=>i.name===aiRegion)||islandData[0];
-  const items:Question[]=(r.questions||[]).map((q:Question)=>({...q,grade:aiGrade,topic:aiTopic,cultureId:zone.id}));
-  if(!items.length)throw Error('AI belum menghasilkan soal valid.');await saveBank([...bank,...items]);setNotice(items.length+' soal berbasis budaya berhasil ditambahkan.');
+  const items:Question[]=(r.questions||[]).map((q:Question)=>({...q,grade:aiGrade,topic:aiTopic,cultureId:zone.id,active:true}));
+  if(!items.length)throw Error('AI belum menghasilkan soal valid.');
+  const saved=await api('admin/questions/bulk',{method:'POST',body:JSON.stringify({questions:items})});
+  await refreshQuestions();setNotice(saved.count+' soal AI berhasil ditambahkan. Periksa kunci dan pembahasannya sebelum digunakan.');
  }catch(e:any){setError(e.message)}finally{setAiBusy(false)}}
  async function saveSchool(){try{const r=await api('school',{method:'PUT',body:JSON.stringify(school)});setSchool(r.school);setNotice('Identitas sekolah disimpan.')}catch(e:any){setError(e.message)}}
  async function excel(){try{const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Perkembangan Siswa');ws.addRow(['Nama','Kelas','XP','Pulau','Misi dimainkan','Diperbarui']);students.forEach(s=>ws.addRow([s.name,s.grade,s.xp,s.completed.length,s.gamesPlayed,s.updatedAt||'']));download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'laporan-nusantara-sd.xlsx')}catch(e:any){setError('Ekspor Excel gagal: '+e.message)}}
