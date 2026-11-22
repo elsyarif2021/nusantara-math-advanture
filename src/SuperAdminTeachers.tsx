@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {Check,ClipboardCopy,GraduationCap,KeyRound,LockKeyhole,Plus,RefreshCw,ShieldCheck,UserRound,Users,XCircle} from 'lucide-react';
+import TeacherQuestions from './TeacherQuestions';
 
 type Teacher={id:string;name:string;username:string;active:boolean;createdAt?:string;linkCount:number};
 type ClassLink={token:string;teacherId:string;grade:string;label:string;active:boolean};
@@ -52,7 +53,7 @@ export default function SuperAdminTeachers(){
   <div className="super-teacher-list">{teachers.map(t=><article key={t.id} className="super-teacher-item">
    <div className="super-teacher-meta"><div className="teacher-user-icon"><UserRound size={25}/></div><div><strong>{t.name}</strong><span>@{t.username} · {t.linkCount} tautan kelas aktif</span></div><span className={t.active?'teacher-status-on':'teacher-status-off'}>{t.active?'Aktif':'Nonaktif'}</span></div>
    <div className="super-teacher-actions">
-    <button className="outline-button" onClick={()=>setSelectedTeacher(selectedTeacher===t.id?null:t.id)}><Users size={15}/> Tautan Kelas</button>
+    <button className="outline-button" onClick={()=>setSelectedTeacher(selectedTeacher===t.id?null:t.id)}><Users size={15}/> Tautan & Soal</button>
     <button className="outline-button" onClick={()=>{setNameId(nameId===t.id?null:t.id);setEditName(t.name);setResetId(null)}}>✏️ Ubah Nama</button>
     <button className="outline-button" onClick={()=>{setResetId(resetId===t.id?null:t.id);setResetPassword('');setNameId(null)}}><KeyRound size={15}/> Reset Sandi</button>
     <button className={t.active?'teacher-danger':'outline-button'} disabled={busy} onClick={()=>change(t,{active:!t.active})}>{t.active?'Nonaktifkan Guru':'Aktifkan Guru'}</button>
@@ -60,6 +61,7 @@ export default function SuperAdminTeachers(){
    {nameId===t.id&&<div className="super-teacher-edit"><input value={editName} onChange={e=>setEditName(e.target.value)} placeholder="Nama guru baru"/><button className="big-primary" disabled={busy||editName.trim().length<2} onClick={()=>change(t,{name:editName.trim()})}>Simpan Nama</button><button className="outline-button" onClick={()=>setNameId(null)}>Batal</button></div>}
    {resetId===t.id&&<div className="super-teacher-edit"><input type="password" autoComplete="new-password" value={resetPassword} onChange={e=>setResetPassword(e.target.value)} placeholder="Kata sandi baru minimal 8 karakter"/><button className="big-primary" disabled={busy||resetPassword.length<8} onClick={()=>change(t,{newPassword:resetPassword})}>Simpan Kata Sandi</button><button className="outline-button" onClick={()=>setResetId(null)}>Batal</button></div>}
    {selectedTeacher===t.id&&<div className="super-teacher-links"><h4>Link kelas milik {t.name}</h4>{links.filter(l=>l.teacherId===t.id).map(l=><div key={l.token}><span>{l.label} ({l.grade}) {l.active?'✅':'⛔'}</span><input value={window.location.origin+'/gabung/'+l.token} readOnly onFocus={e=>e.target.select()}/><button className="outline-button" onClick={()=>copy('/gabung/'+l.token)}><ClipboardCopy size={14}/> Salin</button></div>)}{links.filter(l=>l.teacherId===t.id).length===0&&<p>Guru ini belum membuat tautan kelas.</p>}</div>}
+   {selectedTeacher===t.id&&<TeacherQuestions key={t.id} mode="superadmin" teacherId={t.id} links={links.filter(l=>l.teacherId===t.id)}/>}
   </article>)}{!loading&&teachers.length===0&&<div className="teacher-empty">Belum ada akun Guru. Buat akun di formulir atas, lalu guru dapat membuat link siswa dari portalnya.</div>}</div>
   <div className="teacher-super-notice"><LockKeyhole size={18}/> Super Admin mengawasi seluruh akun, soal, dan siswa. Guru hanya mengawasi siswa yang mendaftar melalui tautan miliknya.</div>
  </section>;
