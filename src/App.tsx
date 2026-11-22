@@ -35,7 +35,7 @@ export default function App(){
  const[adminImageUploading,setAdminImageUploading]=useState(false);
  const[modeGrade,setModeGrade]=useState('Kelas 1'),[modeCulture,setModeCulture]=useState('sumatra'),[modeValue,setModeValue]=useState<'mixed'|'manual'>('mixed'),[modeLoading,setModeLoading]=useState(false);
  const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(gradeTopics['Kelas 1'][0]),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
- const[music,setMusic]=useState(false),[voice,setVoice]=useState(false);
+ const[music,setMusic]=useState(false),[voice,setVoice]=useState(false),[moreOpen,setMoreOpen]=useState(false);
  const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
  const rank=student?(student.completed.length>=7?'Penjelajah Nusantara':student.completed.length>=4?'Pelaut Emas':student.completed.length>=1?'Petualang Hebat':'Petualang Baru'):'Ayo Jadi Petualang';
  const daily=student?.recent.some(x=>new Date(x.date).toDateString()===new Date().toDateString())??false;
@@ -76,10 +76,10 @@ export default function App(){
  useEffect(()=>{if(view!=='admin')return;api('health').then(r=>setAdminSetup(Boolean(r.admin))).catch(()=>setAdminSetup(null));api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>setAdmin(false))},[view]);
  useEffect(()=>{if(view!=='admin'||!admin)return;let cancelled=false;setModeLoading(true);api('public/mission-config?grade='+encodeURIComponent(modeGrade)+'&culture='+encodeURIComponent(modeCulture)).then(r=>{if(!cancelled)setModeValue(r.mode==='manual'?'manual':'mixed')}).catch(e=>{if(!cancelled)setError(e.message)}).finally(()=>{if(!cancelled)setModeLoading(false)});return()=>{cancelled=true}},[view,admin,modeGrade,modeCulture]);
  function say(t:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(t);utter.lang='id-ID';utter.rate=.87;window.speechSynthesis.speak(utter)}
- function navigate(next:View){setView(next);setError('');const target=next==='admin'?'/admin':next==='teacher'?'/guru':invite&&inviteStatus==='valid'?'/gabung/'+invite.token:'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
+ function navigate(next:View){setMoreOpen(false);setView(next);setError('');const target=next==='admin'?'/admin':next==='teacher'?'/guru':invite&&inviteStatus==='valid'?'/gabung/'+invite.token:'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
  function openAdmin(){navigate('admin');}
  function openTeacher(){navigate('teacher');}
- function mapScroll(){setView('home');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),100)}
+ function mapScroll(){navigate('home');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),100)}
  function levelPick(g:string){if(invite&&g!==invite.grade){setNotice('Kelas sudah ditentukan oleh tautan guru: '+invite.grade+'.');return}if(student&&student.grade!==g){setNotice('Untuk mengganti kelas, keluar dari profil siswa terlebih dahulu.');return}setChosenGrade(g)}
  function needStudent(){if(student)return true;if(isJoinPath()&&inviteStatus!=='valid'){setError('Tautan kelas harus diverifikasi. Mintalah tautan baru jika sudah ditutup.');return false}setModal(true);setNotice('Masukkan nama dan kelas untuk menyimpan petualanganmu.');return false}
  async function enroll(){const clean=name.trim();if(clean.length<2){setError('Tuliskan nama siswa sedikitnya 2 huruf.');return}if(!grades.includes(chosenGrade)){setError('Pilih kelas SD 1 sampai 6.');return}
