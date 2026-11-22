@@ -39,28 +39,47 @@ export default function App(){
  const sample=islandData[0];
  const gradeIndex=Number(chosenGrade.replace('Kelas ','')),profileGrade=student?.grade??chosenGrade;
  useEffect(()=>{api('school').then((r)=>setSchool(r.school)).catch(()=>{});
-  const saved=localStorage.getItem('nma-student-id');
-  if(saved&&/^[a-f0-9]{32}$/.test(saved))api('progress/'+saved).then((r)=>{if(r.progress&&grades.includes(r.progress.grade)){setStudent(r.progress);setName(r.progress.name);setChosenGrade(r.progress.grade)}else localStorage.removeItem('nma-student-id')}).catch(()=>{});
+  const token=pathJoinToken();
+  if(isJoinPath()){
+   if(!token){setInviteStatus('invalid');setError('Alamat kelas tidak valid. Mintalah tautan baru dari guru.');return}
+   api('invite/'+token).then(r=>{setInvite(r.invite);setInviteStatus('valid');setChosenGrade(r.invite.grade);setModal(true);setNotice('Tautan kelas '+r.invite.label+' dari '+r.invite.teacherName+' berhasil dibuka.');}).catch(e=>{setInviteStatus('invalid');setError(e.message)});
+  }
+  const saved=localStorage.getItem('nma-student-id'),savedToken=localStorage.getItem('nma-student-invite');
+  if(isJoinPath()&&savedToken!==token)return;
+  if(saved&&/^[a-f0-9]{32}$/.test(saved))api('progress/'+saved).then((r)=>{
+   if(r.progress&&grades.includes(r.progress.grade)&&(!token||r.progress.inviteToken===token)){
+    setStudent(r.progress);setName(r.progress.name);setChosenGrade(r.progress.grade);
+   }else if(!token)localStorage.removeItem('nma-student-id');
+  }).catch(()=>{});
  },[]);
  useEffect(()=>{if(!audioRef.current)return;if(music)audioRef.current.play().catch(()=>{setMusic(false);setNotice('Musik belum tersedia. Narasi suara tetap bisa digunakan.');});else audioRef.current.pause()},[music]);
  useEffect(()=>{if(view!=='admin'||!admin)return;loadAdmin();const timer=setInterval(loadAdmin,8000);return()=>clearInterval(timer)},[view,admin]);
- useEffect(()=>{const pop=()=>setView(window.location.pathname==='/admin'?'admin':'home');window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)},[]);
+ useEffect(()=>{const pop=()=>setView(window.location.pathname==='/admin'?'admin':window.location.pathname==='/guru'?'teacher':'home');window.addEventListener('popstate',pop);return()=>window.removeEventListener('popstate',pop)},[]);
  useEffect(()=>{if(view!=='admin')return;api('health').then(r=>setAdminSetup(Boolean(r.admin))).catch(()=>setAdminSetup(null));api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>setAdmin(false))},[view]);
  useEffect(()=>{if(view!=='admin'||!admin)return;let cancelled=false;setModeLoading(true);api('public/mission-config?grade='+encodeURIComponent(modeGrade)+'&culture='+encodeURIComponent(modeCulture)).then(r=>{if(!cancelled)setModeValue(r.mode==='manual'?'manual':'mixed')}).catch(e=>{if(!cancelled)setError(e.message)}).finally(()=>{if(!cancelled)setModeLoading(false)});return()=>{cancelled=true}},[view,admin,modeGrade,modeCulture]);
  function say(t:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(t);utter.lang='id-ID';utter.rate=.87;window.speechSynthesis.speak(utter)}
- function navigate(next:View){setView(next);setError('');const target=next==='admin'?'/admin':'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
+ function navigate(next:View){setView(next);setError('');const target=next==='admin'?'/admin':next==='teacher'?'/guru':invite&&inviteStatus==='valid'?'/gabung/'+invite.token:'/';if(window.location.pathname!==target)window.history.pushState({page:next},'',target);window.scrollTo({top:0,behavior:'smooth'});}
  function openAdmin(){navigate('admin');}
+ function openTeacher(){navigate('teacher');}
  function mapScroll(){setView('home');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),100)}
- function levelPick(g:string){if(student&&student.grade!==g){setNotice('Untuk mengganti kelas, keluar dari profil siswa terlebih dahulu.');return}setChosenGrade(g)}
- function needStudent(){if(student)return true;setModal(true);setNotice('Masukkan nama dan kelas untuk menyimpan petualanganmu.');return false}
+ function levelPick(g:string){if(invite&&g!==invite.grade){setNotice('Kelas sudah ditentukan oleh tautan guru: '+invite.grade+'.');return}if(student&&student.grade!==g){setNotice('Untuk mengganti kelas, keluar dari profil siswa terlebih dahulu.');return}setChosenGrade(g)}
+ function needStudent(){if(student)return true;if(isJoinPath()&&inviteStatus!=='valid'){setError('Tautan kelas harus diverifikasi. Mintalah tautan baru jika sudah ditutup.');return false}setModal(true);setNotice('Masukkan nama dan kelas untuk menyimpan petualanganmu.');return false}
  async function enroll(){const clean=name.trim();if(clean.length<2){setError('Tuliskan nama siswa sedikitnya 2 huruf.');return}if(!grades.includes(chosenGrade)){setError('Pilih kelas SD 1 sampai 6.');return}
+ if(isJoinPath()&&(!invite||inviteStatus!=='valid')){setError('Tautan kelas tidak tersedia. Mintalah tautan aktif dari guru.');return}
  setBusy(true);setError('');
- try{const id=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
-  const p:Student={id,name:clean,grade:chosenGrade,xp:0,gamesPlayed:0,completed:[],recent:[]};
-  const r=await api('progress/'+id,{method:'PUT',body:JSON.stringify(p)});
-  const saved=r.progress||p;localStorage.setItem('nma-student-id',id);setStudent(saved);setModal(false);setNotice('Selamat datang, '+clean+'! Pilih salah satu pulau di peta.');say('Selamat datang di Nusantara Math Adventure!');
+ try{let saved:Student;
+  if(invite&&inviteStatus==='valid'){
+   const r=await api('enroll',{method:'POST',body:JSON.stringify({token:invite.token,name:clean})});
+   saved=r.progress;localStorage.setItem('nma-student-invite',invite.token);
+  }else{
+   const id=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
+   const p:Student={id,name:clean,grade:chosenGrade,xp:0,gamesPlayed:0,completed:[],recent:[]};
+   const r=await api('progress/'+id,{method:'PUT',body:JSON.stringify(p)});
+   saved=r.progress||p;localStorage.removeItem('nma-student-invite');
+  }
+  localStorage.setItem('nma-student-id',saved.id);setStudent(saved);setChosenGrade(saved.grade);setModal(false);setNotice('Selamat datang, '+clean+'! Progresmu akan tercatat untuk guru kelas.');say('Selamat datang di Nusantara Math Adventure!');
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
- function signout(){localStorage.removeItem('nma-student-id');setStudent(null);setName('');setMusic(false);navigate('home')}
+ function signout(){localStorage.removeItem('nma-student-id');localStorage.removeItem('nma-student-invite');setStudent(null);setName('');setMusic(false);navigate('home')}
  async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
  try{const [r,config]=await Promise.all([api('public/questions?grade='+encodeURIComponent(s.grade)),api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+islandData[i].id)]);const topic=gradeTopics[s.grade][i];
   const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===islandData[i].id));
