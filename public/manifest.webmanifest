@@ -1,0 +1,17 @@
+{
+  "name": "Nusantara Math Adventure Pro",
+  "short_name": "Math Adventure",
+  "description": "Petualangan matematika Indonesia kelas 7–12",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8ef",
+  "theme_color": "#083d4c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
