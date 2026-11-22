@@ -49,36 +49,69 @@ function question(grade:string,stage:number):Q{
   if(stage===5)return makeQ('Persegi panjang panjang '+a+' cm dan lebar '+b+' cm, luasnya ... cm².',a*b,'Luas = panjang × lebar.');
   return makeQ('Data: '+a+', '+b+', '+(a+b)+'. Nilai terbesar?',a+b,'Bandingkan ketiga angka.');
  }
- if(stage===0){
-  if(g>=10){const exp=rand(2,5);return makeQ('Nilai 2^'+exp+' adalah ...',2**exp,'2^'+exp+' berarti 2 dikalikan sebanyak '+exp+' kali.');}
-  return makeQ('Hitung '+a+' − '+(a+b)+' = ...',-b,'Pengurangan bilangan lebih besar menghasilkan '+(-b)+'.');
+ switch(g){
+ case 7:
+  switch(stage){
+   case 0:return makeQ('Hitung '+a+' − ('+(a+b)+') = ...',-b,'Hasilnya '+a+' − '+(a+b)+' = '+(-b)+'.');
+   case 1:return makeQ('Hitung '+a+'/'+b+' + '+c+'/'+b+' = ...',(a+c)+'/'+b,'Penyebut sama, sehingga pembilang dijumlahkan menjadi '+(a+c)+'/'+b+'.',[(a+c)+'/'+(b*2),(a*c)+'/'+b,a+'/'+(b+c)]);
+   case 2:return makeQ('Jika A = {1,2,3,'+a+'}, jumlah anggota A adalah ...',a===1||a===2||a===3?3:4,'Himpunan tidak menghitung elemen yang berulang.');
+   case 3:return makeQ('Koefisien x dari '+a+'x + '+b+'x = ...',a+b,'Suku sejenis dijumlahkan, sehingga ('+a+'+'+b+')x.');
+   case 4:return makeQ('Jika '+a+'x + '+b+' = '+(a*c+b)+', nilai x adalah ...',c,'Kurangi '+b+', lalu bagi '+a+'.');
+   case 5:return makeQ('Harga '+a+' pensil adalah Rp'+(a*b*1000)+'. Harga 1 pensil adalah ... rupiah.',b*1000,'Gunakan perbandingan senilai, total harga dibagi jumlah pensil.');
+   default:return makeQ('Rata-rata dari '+a+', '+b+', '+(a+b)+' adalah ...',(2*(a+b))/3,'Jumlah data dibagi 3.',[a+b,(a+b)/3]);
+  }
+ case 8:
+  switch(stage){
+   case 0:return makeQ('Barisan '+a+', '+(a+b)+', '+(a+2*b)+', ... Suku ke-'+c+' adalah ...',a+(c-1)*b,'Un = a + (n−1)b.');
+   case 1:return makeQ('Diberikan f(x) = '+a+'x + '+b+'. Nilai f('+c+') adalah ...',a*c+b,'Substitusi x='+c+'.');
+   case 2:return makeQ('Gradien garis y = '+a+'x + '+b+' adalah ...',a,'Koefisien x merupakan gradien m.');
+   case 3:return makeQ('x + y = '+(a+b)+' dan x − y = '+(a-b)+'. Nilai y adalah ...',b,'Kurangi kedua persamaan lalu bagi 2.');
+   case 4:return makeQ('Sisi siku-siku segitiga adalah '+(3*c)+' cm dan '+(4*c)+' cm. Sisi miringnya ... cm.',5*c,'Triple Pythagoras 3:4:5.');
+   case 5:return makeQ('Keliling lingkaran dengan r = '+(7*c)+' cm (π = 22/7) adalah ... cm.',44*c,'K = 2πr = 2×22/7×'+(7*c)+'.');
+   default:return makeQ('Peluang muncul angka genap pada dadu bersisi enam adalah ...','1/2','Terdapat 3 angka genap dari 6 hasil yang mungkin.',['1/6','2/6','5/6']);
+  }
+ case 9:
+  switch(stage){
+   case 0:return makeQ('2 pangkat '+c+' adalah ...',2**c,'2 dikalikan dengan dirinya sebanyak '+c+' kali.');
+   case 1:return makeQ('Akar terbesar x² − '+(a+b)+'x + '+(a*b)+' = 0 adalah ...',Math.max(a,b),'Persamaan dapat difaktorkan menjadi (x−'+a+')(x−'+b+') = 0.');
+   case 2:return makeQ('Bayangan titik ('+a+','+b+') jika dicerminkan pada sumbu-Y adalah ...','('+(-a)+','+b+')','Refleksi sumbu-Y mengubah tanda koordinat x.',['('+a+','+(-b)+')','('+(-a)+','+(-b)+')','('+b+','+a+')']);
+   case 3:return makeQ('Dua segitiga sebangun memiliki skala 1:'+c+'. Jika sisi kecil '+a+' cm, sisi besar ... cm.',a*c,'Kalikan sisi dengan faktor skala '+c+'.');
+   case 4:return makeQ('Volume kubus dengan panjang rusuk '+a+' cm adalah ... cm³.',a**3,'Volume kubus = rusuk³ = '+a+'³.');
+   case 5:return makeQ('Jika f(x)='+a+'x² + '+b+'x, f('+c+') adalah ...',a*c*c+b*c,'Substitusi x='+c+' ke f(x).');
+   default:return makeQ('Rata-rata data '+a+', '+b+', '+(a+b)+' adalah ...',num(2*(a+b)/3),'Rata-rata = ('+a+'+'+b+'+'+(a+b)+')/3.',[a+b,num((a+b)/3)]);
+  }
+ case 10:
+  switch(stage){
+   case 0:return makeQ('Hitung 3^'+c+' = ...',3**c,'Pangkat '+c+' berarti mengalikan bilangan 3 sebanyak '+c+' kali.');
+   case 1:return makeQ('log basis 2 dari '+(2**c)+' = ...',c,'Karena 2^'+c+' = '+(2**c)+'.');
+   case 2:return makeQ('Jika '+a+'x + '+b+' = '+(a*c+b)+', x = ...',c,'Kurangi kedua ruas dengan '+b+' lalu bagi '+a+'.');
+   case 3:return makeQ('x+y+z = '+(a+b+c)+', y='+b+' dan z='+c+'. Maka x = ...',a,'Substitusi nilai y dan z ke persamaan pertama.');
+   case 4:return makeQ('Titik puncak fungsi y = x² − '+(2*c)+'x + '+(c*c)+' memiliki absis ...',c,'Kuadrat sempurna (x−'+c+')², puncak saat x='+c+'.');
+   case 5:return makeQ('Besar sin 30° adalah ...','1/2','Nilai sudut istimewa sin 30° = 1/2.',['1','0','√3/2']);
+   default:return makeQ('Median dari bilangan '+a+', '+b+', '+(a+b)+' adalah ...',Math.max(a,b),'Urutan tiga nilai: yang terkecil, terbesar dari a dan b, serta a+b.');
+  }
+ case 11:
+  switch(stage){
+   case 0:return makeQ('Elemen kiri atas A+B jika elemen kiri atas A='+a+' dan B='+b+' adalah ...',a+b,'Penjumlahan matriks dilakukan per elemen.');
+   case 1:return makeQ('Suku ke-'+c+' barisan aritmetika dengan U1='+a+' dan beda='+b+' adalah ...',a+(c-1)*b,'Un=a+(n−1)b.');
+   case 2:return makeQ('Suku ke-'+c+' barisan geometri dengan U1='+a+' dan rasio 2 adalah ...',a*2**(c-1),'Un=ar^(n−1).');
+   case 3:return makeQ('Limit x→'+c+' dari '+a+'x + '+b+' adalah ...',a*c+b,'Fungsi linear kontinu, substitusi x='+c+'.');
+   case 4:return makeQ('Jika f(x)='+a+'x²+'+b+'x, f\'(1)= ...',2*a+b,'f\'(x)=2×'+a+'x + '+b+'.');
+   case 5:return makeQ('Peluang jumlah 7 dari dua dadu adalah ...','1/6','Terdapat 6 hasil berjumlah 7 dari 36 kemungkinan.',['1/12','1/3','7/36']);
+   default:return makeQ('Panjang busur 90° pada lingkaran dengan r='+7*c+' cm (π=22/7) adalah ... cm.',11*c,'Panjang busur = (90/360)×2πr.');
+  }
+ case 12:
+ default:
+  switch(stage){
+   case 0:return makeQ('Banyak susunan berbeda memilih ketua dan wakil dari '+(a+3)+' orang adalah ...',(a+3)*(a+2),'P(n,2) = n(n−1).');
+   case 1:return makeQ('Banyak cara memilih 2 siswa dari '+(a+3)+' siswa adalah ...',((a+3)*(a+2))/2,'C(n,2) = n(n−1)/2.');
+   case 2:return makeQ('Modal Rp'+(a*100000)+' mendapat bunga majemuk 10% per tahun. Nilai akhir 2 tahun dalam rupiah adalah ...',a*121000,'A=P(1+0,1)^2 = P×1,21.');
+   case 3:return makeQ('Rata-rata data '+a+', '+b+', '+(a+b)+' adalah ...',num(2*(a+b)/3),'Jumlah data dibagi 3.',[a+b,num((a+b)/3)]);
+   case 4:return makeQ('Limit x→'+a+' dari (x²−'+(a*a)+')/(x−'+a+') = ...',2*a,'Faktorkan pembilang menjadi (x−a)(x+a), hasilnya 2a.');
+   case 5:return makeQ('Hasil integral '+(2*c)+'x dx adalah ...',c+'x² + C','Integral ax dx = (a/2)x² + C.',[(2*c)+'x² + C',c+'x + C',c+'x³ + C']);
+   default:return makeQ('Diagonal ruang kubus dengan rusuk '+a+' cm adalah ...',a+'√3 cm','Diagonal ruang kubus d=s√3.',[a+'√2 cm',(3*a)+' cm',a+' cm']);
+  }
  }
- if(stage===1){
-  if(g===7)return makeQ('Hasil '+a+'/'+b+' + '+a+'/'+b+' = ...',num(2*a/b),'Jumlahkan pembilang karena penyebut sama, lalu sederhanakan.',[num(a/b),num(a*2),num((a+1)/b)]);
-  if(g===8)return makeQ('Jika f(x) = '+a+'x + '+b+', f('+c+') = ...',a*c+b,'Substitusikan x = '+c+' ke fungsi tersebut.');
-  if(g>=11)return makeQ('Suku ke-'+c+' barisan aritmetika dengan a='+a+' dan beda='+b+' adalah ...',a+(c-1)*b,'Un = a + (n − 1)b.');
-  return makeQ('Logaritma basis 2 dari '+(2**c)+' adalah ...',c,'Karena 2^'+c+' = '+(2**c)+'.');
- }
- if(stage===2){
-  if(g>=11){return makeQ('Jika Un = '+a+' + (n−1)×'+b+', U'+c+' = ...',a+(c-1)*b,'Gunakan rumus suku ke-n.');}
-  return makeQ('Sederhanakan '+a+'x + '+b+'x, koefisien x adalah ...',a+b,'Jumlahkan koefisien suku sejenis.');
- }
- if(stage===3){
-  if(g===7)return makeQ('Jika '+a+'x = '+(a*b)+', nilai x adalah ...',b,'Bagi kedua ruas dengan '+a+'.');
-  if(g>=11)return makeQ('Limit x→'+c+' dari ('+a+'x + '+b+') adalah ...',a*c+b,'Polinom kontinu; substitusi x = '+c+'.');
-  return makeQ('x + y = '+(a+b)+' dan x = '+a+'. Nilai y adalah ...',b,'Substitusikan nilai x ke persamaan.');
- }
- if(stage===4){
-  if(g>=11)return makeQ('Turunan f(x) = '+a+'x² + '+b+'x adalah ... saat x=1',2*a+b,"f'(x)=2×"+a+'x + '+b+', kemudian substitusi x=1.');
-  if(g===9||g===10)return makeQ('Akar positif dari x² = '+(a*a)+' adalah ...',a,'x² = '+(a*a)+' menghasilkan x = ±'+a+'.');
-  return makeQ('Sisi siku-siku segitiga '+(3*c)+' dan '+(4*c)+'. Hipotenusa?',5*c,'Gunakan triple Pythagoras 3:4:5.');
- }
- if(stage===5){
-  if(g>=10)return makeQ('Nilai sin 30° dalam bentuk desimal adalah ...',0.5,'sin 30° = 1/2 = 0.5.',[0,1,0.25]);
-  return makeQ('Keliling lingkaran dengan jari-jari '+(7*c)+' cm (π=22/7) adalah ...',44*c,'Keliling = 2πr = 2×22/7×'+(7*c)+'.');
- }
- if(g===12)return makeQ('Integral 2x dx memiliki fungsi asal ...', 'x² + C','Integral 2x terhadap x adalah x² + C.',['2x² + C','2 + C','x + C']);
- const n=rand(4,9),m=rand(1,n-1);return makeQ('Dari '+n+' kejadian sama mungkin, '+m+' kejadian diinginkan. Peluangnya dalam desimal (2 angka) adalah ...',num(Math.round(m/n*100)/100),'Peluang = kejadian diinginkan / semua kejadian = '+m+'/'+n+'.',[num(Math.round((n-m)/n*100)/100),num(Math.round(m/(n+1)*100)/100)]);
 }
 async function api(path:string,options:RequestInit={}):Promise<any>{
  const response=await fetch('/api/'+path,{...options,credentials:'same-origin',headers:{'Content-Type':'application/json',...options.headers},cache:'no-store'});
