@@ -88,7 +88,7 @@ export function makeCultureQuestion(grade:string,stage:number):Question{
  case 3:q=numeric('Panitia punya '+(n*k)+' bunga dan membaginya ke '+n+' kelompok sama banyak. Setiap kelompok mendapat?',k,(n*k)+' ÷ '+n+' = '+k+'.');break;
  case 4:q=numeric('Ada dua petak taman pameran, berukuran '+n+'×'+k+' m dan '+b+'×2 m, tanpa tumpang tindih. Luas total?',n*k+b*2,'Jumlah luas kedua petak yang tidak tumpang tindih.');break;
  case 5:q=numeric('Kotak suvenir berbentuk balok dengan ukuran '+n+' cm, '+k+' cm, dan 3 cm. Volumenya ... cm³.',n*k*3,'Volume balok = panjang × lebar × tinggi.');break;
- default:q=numeric('Kapal menempuh '+n*10+' km dalam '+k+' jam. Kecepatan rata-rata ... km/jam.',n*10/k,'Kecepatan = jarak / waktu.',[n*10,n*k]);
+ default:q=numeric('Kapal menempuh '+n*10+' km dalam '+k+' jam. Kecepatan rata-rata ... km/jam.',n*10/k,'Kecepatan = jarak / waktu.');
  }break;
  default:switch(stage){
  case 0:{const val=r(1,8);q=choices('Dalam festival, '+val+'/10 bagian peserta memakai pakaian merah. Bentuk desimal pecahan ini adalah ...','0,'+val,['0,'+(val===9?8:val+1),val+',0','0,0'+val],'Penyebut 10 berarti satu angka di belakang koma.');break}
