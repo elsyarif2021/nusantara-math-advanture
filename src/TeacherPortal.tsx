@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {ArrowLeft,BookOpen,CheckCircle2,ClipboardCopy,GraduationCap,KeyRound,Link2,LockKeyhole,LogOut,Plus,RefreshCw,ShieldCheck,UserRound,Users,XCircle} from 'lucide-react';
 import {grades} from './learning';
+import TeacherQuestions from './TeacherQuestions';
 
 type Teacher={id:string;name:string;username:string;role:'teacher';active:boolean};
 type TeacherLink={token:string;grade:string;label:string;teacherId:string;active:boolean;createdAt:string};
@@ -71,7 +72,7 @@ export default function TeacherPortal({onHome}:{onHome:()=>void}){
  }
  const visible=students.filter(s=>s.name.toLowerCase().includes(search.toLowerCase()));
  return <main className="teacher-page">
-  <div className="teacher-page-head"><button className="back-link" onClick={onHome}><ArrowLeft size={16}/> Kembali ke permainan</button><span className="teacher-role-tag"><GraduationCap size={18}/> AKUN GURU · AKSES TERBATAS</span><h1>Portal Guru Nusantara</h1><p>Bagikan tautan kelas khususmu. Kamu hanya dapat memantau siswa yang terdaftar melalui tautan milikmu.</p></div>
+  <div className="teacher-page-head"><button className="back-link" onClick={onHome}><ArrowLeft size={16}/> Kembali ke permainan</button><span className="teacher-role-tag"><GraduationCap size={18}/> AKUN GURU · AKSES TERBATAS</span><h1>Portal Guru Nusantara</h1><p>Bagikan tautan kelas khususmu, kelola soal Matematika sesuai kelas, dan pantau hanya siswa dari tautan milikmu.</p></div>
   {error&&<div className="teacher-alert bad" role="alert"><XCircle size={18}/>{error}<button onClick={()=>setError('')}>×</button></div>}
   {message&&<div className="teacher-alert good"><CheckCircle2 size={18}/>{message}<button onClick={()=>setMessage('')}>×</button></div>}
   {loading?<div className="teacher-panel"><p>Memeriksa sesi guru…</p></div>:!teacher?
@@ -83,7 +84,7 @@ export default function TeacherPortal({onHome}:{onHome:()=>void}){
     <small>Akun guru dibuat oleh Super Admin melalui menu Kelola Akun Guru.</small>
    </section>:
    <div className="teacher-workspace">
-    <div className="teacher-welcome"><div className="teacher-face">👩‍🏫</div><div><span className="teacher-role-tag">GURU · {teacher.username}</span><h2>Assalamu'alaikum, {teacher.name}! 👋</h2><p>Kelola tautan kelas dan lihat perkembangan siswa yang bergabung melalui tautanmu.</p></div><button className="outline-button" onClick={logout}><LogOut size={16}/> Keluar</button></div>
+    <div className="teacher-welcome"><div className="teacher-face">👩‍🏫</div><div><span className="teacher-role-tag">GURU · {teacher.username}</span><h2>Assalamu'alaikum, {teacher.name}! 👋</h2><p>Kelola tautan, tambah/edit/hapus soal kelasmu, dan lihat perkembangan siswa yang bergabung melalui tautanmu.</p></div><button className="outline-button" onClick={logout}><LogOut size={16}/> Keluar</button></div>
     <div className="teacher-metrics"><div><Users/><strong>{students.length}</strong><small>Siswa terpantau</small></div><div><Link2/><strong>{links.filter(l=>l.active).length}</strong><small>Tautan aktif</small></div><div><BookOpen/><strong>{students.reduce((n,s)=>n+(s.gamesPlayed||0),0)}</strong><small>Latihan siswa</small></div></div>
     <section className="teacher-panel"><div className="teacher-heading"><div><h2>🔗 Buat Tautan Kelas Siswa</h2><p>Setiap guru mendapat tautan unik untuk setiap kelas/kelompok. Siswa cukup mengisi nama tanpa PIN.</p></div></div>
      <div className="teacher-form"><label>Kelas SD<select value={grade} onChange={e=>{setGrade(e.target.value);setLabel(e.target.value+'A')}}>{grades.map(g=><option key={g}>{g}</option>)}</select></label><label>Nama kelompok<input value={label} onChange={e=>setLabel(e.target.value)} maxLength={80} placeholder="Misalnya Kelas 4A"/></label><button className="big-primary" disabled={busy} onClick={createLink}><Plus size={17}/> Buat Link Siswa</button></div>
@@ -92,6 +93,7 @@ export default function TeacherPortal({onHome}:{onHome:()=>void}){
       {links.length===0&&<p className="teacher-empty">Belum ada tautan. Buat link kelas pertama, lalu kirimkan kepada siswamu. 🌟</p>}
      </div>
     </section>
+    <TeacherQuestions links={links}/>
     <section className="teacher-panel"><div className="teacher-heading"><div><h2>📊 Pemantauan Siswa Saya</h2><p>Hanya siswa yang bergabung melalui tautan milik guru ini. Diperbarui setiap 8 detik.</p></div><div className="teacher-link-actions"><button className="outline-button" onClick={refresh}><RefreshCw size={15}/> Segarkan</button><button className="outline-button" onClick={exportStudents}>⬇️ Ekspor CSV</button></div></div>
      <div className="teacher-filters"><label>Kelompok<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="Semua">Semua kelompok saya</option>{links.map(l=><option key={l.token} value={l.token}>{l.label} ({l.grade})</option>)}</select></label><label>Cari nama<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cari siswa…"/></label></div>
      <div className="teacher-table-wrap"><table><thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Kelompok</th><th>XP</th><th>Pulau</th><th>Latihan</th><th>Terakhir Aktif</th></tr></thead><tbody>{visible.map(s=><tr key={s.id}><td><b>{s.name}</b></td><td>{s.grade}</td><td>{links.find(l=>l.token===s.inviteToken)?.label||'Kelas Saya'}</td><td>{s.xp}</td><td>{s.completed?.length||0}/7</td><td>{s.gamesPlayed}</td><td>{s.updatedAt?new Date(s.updatedAt).toLocaleString('id-ID'):'—'}</td></tr>)}{visible.length===0&&<tr><td colSpan={7}>Belum ada siswa dalam kelompok yang dipilih.</td></tr>}</tbody></table></div>
