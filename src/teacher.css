@@ -144,3 +144,12 @@
 .student-audio-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:13px 16px}
 .student-audio-controls button{display:flex;align-items:center;gap:8px;justify-content:center}
 @media(max-width:540px){.student-audio-controls{flex-direction:column;align-items:stretch}.student-audio-controls button{width:100%}}
+
+
+/* Grade is selected only during student login, never duplicated on landing or lessons. */
+.lesson-login-prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;margin:20px auto 32px;padding:30px 22px;max-width:590px;text-align:center;background:#fffef8;border:2px dashed #b3dce7;border-radius:22px;box-shadow:0 6px 0 #dceef2}
+.lesson-login-prompt>span{font-size:45px;line-height:1}
+.lesson-login-prompt h2{font:800 24px 'Baloo 2',sans-serif;color:#226193;margin:0}
+.lesson-login-prompt p{font-size:13px;line-height:1.65;color:#6186a1;margin:0 0 6px}
+.lesson-login-prompt button{min-width:190px}
+@media(max-width:600px){.lesson-login-prompt{padding:23px 14px;margin:14px 0}.lesson-login-prompt h2{font-size:21px}}
