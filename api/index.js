@@ -39,7 +39,7 @@ export default async function handler(req,res){
    }else return send(res,400,{error:'Jenis akses pengunggah tidak valid.'});
    let parsed;try{parsed=parseQuestionImage(req.body)}catch(e){return send(res,400,{error:e.message})}
    const location=createQuestionImageLocation(owner,parsed.contentType);
-   await put(location.pathname,parsed.buffer,{access:'private',contentType:parsed.contentType,allowOverwrite:false});
+   await put(location.pathname,parsed.buffer,{access:'private',contentType:parsed.contentType,allowOverwrite:false,addRandomSuffix:false});
    return send(res,201,{uploaded:true,url:location.url,size:parsed.buffer.length,contentType:parsed.contentType});
   }
   if(path.startsWith('question-images/file/')&&method==='GET'){
