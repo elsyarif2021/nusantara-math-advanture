@@ -142,3 +142,20 @@ Tes isolasi peran: `npm test` memeriksa akun guru yang terpisah, dua tautan mili
 **Kuis siswa:** siswa yang masuk dari `/gabung/<token>` memperoleh soal milik Guru penanggung jawab kelas itu, disaring berdasarkan kelas, topik, pulau, dan status aktif. Soal Guru diutamakan sebelum soal global/soal otomatis; seluruh soal tersimpan berpeluang dipakai, bukan hanya tiga pertama. Soal Guru lain **tidak ditampilkan** kepada siswa kelas tersebut.
 
 Tersedia pengujian integrasi penolakan akses Guru lain, verifikasi kelas yang dikelola, status publikasi, pembuatan/edit/penghapusan oleh Super Admin, dan pemilihan soal untuk siswa melalui `npm test`.
+
+
+## 🖼️ Upload Gambar Soal dari Perangkat (Super Admin dan Guru)
+
+**Status:** fitur pada formulir CRUD soal tersedia bagi kedua peran.
+- **Guru:** `/guru` → login → **Bank Soal Kelas Saya** → **Tambah Soal** atau **Edit** → **Upload gambar soal dari HP / komputer**.
+- **Super Admin (bank global):** `/admin` → **Pengaturan Soal** → tambah/edit → pilih gambar.
+- **Super Admin (soal guru):** `/admin` → **Kelola Akun Guru & Kelas** → **Tautan & Soal** → edit/tambah soal guru → pilih gambar.
+- Pilih **JPG, PNG, atau WEBP**, maksimal **2 MB**. Setelah unggah, gambar ditampilkan sebagai **pratinjau**; tekan **Simpan Soal** untuk menautkannya ke soal. Pilih **Hapus gambar dari soal** jika tidak ingin menggunakannya.
+- Gambar muncul pada kuis siswa sesuai kelas, topik, dan pulau. URL gambar HTTPS eksternal juga masih dapat digunakan.
+- Gambar ditempatkan dalam Vercel Blob **privat** pada `question-images/<owner>/<uuid>.<ext>`. Aplikasi mengirim gambar melalui `GET /api/question-images/file/<owner>/<uuid>.<ext>` dengan tipe konten gambar dan tanpa HTML/SVG.
+- Upload `POST /api/question-images/upload` menggunakan cookie yang benar-benar terverifikasi server. Request JSON `{role:"teacher"|"superadmin",dataUrl:"data:image/...;base64,..."}`; pengguna tanpa sesi sah mendapat HTTP 401. Backend memeriksa isi file berdasarkan signature/magic bytes dan batas ukuran, bukan hanya ekstensi.
+- Identitas guru/role diambil dari sesi dan **tidak** dipercaya dari klaim ID guru di browser; media URL menggunakan UUID acak. Jalur gambar tidak menerima traversal atau MIME berbahaya.
+- Menghapus gambar dari soal hanya menghapus **referensi pada soal**, tidak otomatis menghapus objek lama dari Blob. Penghapusan fisik perlu proses pengelolaan media terpisah.
+- Gambar yang sudah ditautkan dapat diakses sebagai ilustrasi soal oleh siapa pun yang mengetahui URL acaknya; jangan unggah foto pribadi siswa atau dokumen rahasia.
+
+Pengujian: `npm run check && npm test && npm run build`.
