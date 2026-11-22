@@ -164,15 +164,26 @@ export default function App(){
   <audio ref={audioRef} src="/resources/nusantara-ceria.wav" loop preload="none"/>
   <header className="topbar">
    <button className="brand" onClick={()=>navigate('home')} aria-label="Beranda Nusantara Math Adventure"><span className="wheel">🧭</span><span><b>Nusantara</b><strong>Math Adventure</strong></span></button>
-   <nav className="topnav" aria-label="Menu utama">
+   <nav className="topnav topnav-simple" aria-label="Menu utama">
     <button className={view==='home'?'active':''} onClick={()=>navigate('home')}><Home size={17}/> Beranda</button>
-    <button onClick={mapScroll}><MapIcon size={18}/> Peta Petualangan</button>
-    <button className={view==='materi'?'active':''} onClick={()=>navigate('materi')}><BookOpen size={17}/> Materi</button>
-    <button className={view==='quiz'?'active':''} onClick={()=>startMission(Math.max(0,(student?.completed.length||0)%7))}><Play size={17}/> Latihan & Kuis</button>
-    <button className={view==='peringkat'?'active':''} onClick={()=>navigate('peringkat')}><Trophy size={17}/> Peringkat</button>
-    <button className={view==='pencapaian'?'active':''} onClick={()=>navigate('pencapaian')}><Star size={17}/> Pencapaian</button>
+    <button onClick={mapScroll}><MapIcon size={18}/> Peta</button>
+    <button className={view==='quiz'?'active':''} onClick={()=>startMission(Math.max(0,(student?.completed.length||0)%7))}><Play size={17}/> Main Kuis</button>
+    <div className="nav-more">
+     <button className={moreOpen?'active':''} aria-expanded={moreOpen} aria-haspopup="true" onClick={()=>setMoreOpen(x=>!x)}><Settings size={17}/> Lainnya</button>
+     {moreOpen&&<div className="nav-more-menu" role="group" aria-label="Fitur lainnya">
+      <button onClick={()=>navigate('materi')}><BookOpen size={16}/> Materi</button>
+      <button onClick={()=>navigate('peringkat')}><Trophy size={16}/> Peringkat</button>
+      <button onClick={()=>navigate('pencapaian')}><Star size={16}/> Penghargaan</button>
+      <div className="nav-more-divider"/>
+      <button onClick={()=>setVoice(v=>!v)}>{voice?<Headphones size={16}/>:<VolumeX size={16}/>} Narasi {voice?'Aktif':'Nonaktif'}</button>
+      <button onClick={()=>setMusic(v=>!v)}>{music?<Volume2 size={16}/>:<VolumeX size={16}/>} Musik {music?'Aktif':'Nonaktif'}</button>
+      <div className="nav-more-divider"/>
+      <button onClick={openTeacher}><GraduationCap size={16}/> Portal Guru</button>
+      <button onClick={openAdmin}><ShieldCheck size={16}/> Super Admin</button>
+     </div>}
+    </div>
    </nav>
-   <div className="top-actions"><button className="audio-toggle" title="Narasi bahasa Indonesia" onClick={()=>setVoice(x=>!x)}>{voice?<Headphones size={19}/>:<VolumeX size={19}/>}</button><button className="audio-toggle" title="Musik" onClick={()=>setMusic(x=>!x)}>{music?<Volume2 size={19}/>:<VolumeX size={19}/>}</button><button className="teacher-header" onClick={openTeacher} aria-label="Masuk ke portal guru"><GraduationCap size={17}/><span>Masuk Guru</span></button><button className="admin-header" onClick={openAdmin} aria-label="Masuk ke portal super admin"><ShieldCheck size={17}/><span>Super Admin</span></button>{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>}</div>
+   <div className="top-actions">{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>}</div>
   </header>
   {error&&<div role="alert" className="flash err"><XCircle size={16}/>{error}<button onClick={()=>setError('')} aria-label="Tutup">×</button></div>}
   {notice&&<div className="flash ok"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')} aria-label="Tutup">×</button></div>}
