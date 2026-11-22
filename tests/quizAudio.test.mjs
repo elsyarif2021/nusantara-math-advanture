@@ -24,7 +24,7 @@ test('voice controls are reachable in every quiz and music uses the direct click
  assert.match(app,/<MathHelper key=\{island\+'-'\+questionIndex\}/);
 });
 test('children see easy instructions and main questions before culture art on small screens',()=>{
- assert.match(helper,/Cara Mudah Menjawab Soal/);
+ assert.match(helper,/Bantuan Soal:/);
  assert.match(helper,/Buka Kalkulator & Panduan/);
  assert.match(teacherCss,/\.quiz-page \.quiz-columns \.quiz-paper\{order:1/);
  assert.match(teacherCss,/\.quiz-page \.quiz-columns \.quiz-scene\{order:2/);
