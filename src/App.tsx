@@ -3,6 +3,7 @@ import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronDown,ChevronRight,Compass,C
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
 import RoleGuide from './RoleGuide';
+import {shouldShowRoleEntry} from './roleEntryVisibility.mjs';
 import MathHelper from './MathHelper';
 import SuperAdminTeachers from './SuperAdminTeachers';
 import {uploadQuestionImage} from './uploadQuestionImage';
@@ -187,7 +188,7 @@ export default function App(){
     <button className={view==='materi'?'active':''} onClick={()=>navigate('materi')}><BookOpen size={17}/> Materi</button>
    </nav>}
    <div className="top-actions">
-    {!((view==='admin'&&admin)||(view==='teacher'&&teacherAuthed))&&<div className="role-entry" ref={roleMenuRef}>
+    {shouldShowRoleEntry({view,student:Boolean(student),teacherAuthed,admin})&&<div className="role-entry" ref={roleMenuRef}>
      <button type="button" className="role-entry-trigger" aria-expanded={roleMenuOpen} aria-controls="role-entry-list" onClick={()=>setRoleMenuOpen(x=>!x)}><ShieldCheck size={16}/><span>Masuk sebagai</span><ChevronDown size={15} className={roleMenuOpen?'rotated':''}/></button>
      {roleMenuOpen&&<div id="role-entry-list" className="role-entry-list" role="group" aria-label="Pilih peran administrator">
       <button type="button" onClick={openTeacher}><GraduationCap size={18}/><span><b>Admin Guru</b><small>Kelola soal dan siswa kelas sendiri</small></span></button>
