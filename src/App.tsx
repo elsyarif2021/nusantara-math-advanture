@@ -1,214 +1,135 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {Anchor,ArrowLeft,BookOpen,CheckCircle2,Compass,Crown,Download,GraduationCap,Headphones,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star, Trophy,Volume2,VolumeX,WandSparkles,XCircle} from 'lucide-react';
-
-type Q={question:string;options:string[];answer:string;explanation:string;grade?:string;topic?:string;imageUrl?:string;videoUrl?:string;audioUrl?:string};
-type Score={region:string;score:number;total:number;date:string};
-type Student={id:string;name:string;grade:string;xp:number;gamesPlayed:number;completed:number[];recent:Score[];updatedAt?:string};
-type SchoolCfg={name:string;music:boolean;logoUrl?:string};
-const locations=[
- {name:'Sumatra',place:'Tanah Rencong',emoji:'🌿',x:15,y:28,story:'Temukan pola angka di tengah hutan hujan dan benteng sejarah.'},
- {name:'Jawa',place:'Candi dan Ilmu',emoji:'🏛️',x:40,y:73,story:'Jelajahi candi, pasar, dan bangun matematika Nusantara.'},
- {name:'Kalimantan',place:'Sungai Mahakam',emoji:'🌳',x:43,y:30,story:'Selesaikan tantangan di antara hutan dan sungai besar.'},
- {name:'Sulawesi',place:'Pelaut Pemberani',emoji:'⛵',x:64,y:43,story:'Gunakan logika untuk membantu pelaut mencari jalur terbaik.'},
- {name:'Bali',place:'Pulau Dewata',emoji:'🌺',x:55,y:83,story:'Ungkap rahasia geometri dan tradisi seni Bali.'},
- {name:'Maluku',place:'Kepulauan Rempah',emoji:'🪸',x:79,y:57,story:'Kumpulkan rempah lewat operasi hitung yang menantang.'},
- {name:'Papua',place:'Puncak Cartenz',emoji:'🏔️',x:91,y:33,story:'Taklukkan puncak matematika dan dapatkan harta karun.'}
-];
-const topics:Record<string,string[]>={
- 'Kelas 1':['Bilangan','Penjumlahan','Pengurangan','Pola','Bangun Datar','Pengukuran','Waktu'],
- 'Kelas 2':['Bilangan Ratusan','Operasi Hitung','Perkalian','Pembagian','Pecahan','Pengukuran','Pola'],
- 'Kelas 3':['Bilangan','Pecahan','Perkalian','Pembagian','Keliling','Pengukuran','Data'],
- 'Kelas 4':['Bilangan','FPB dan KPK','Pecahan','Desimal','Luas','Keliling','Diagram'],
- 'Kelas 5':['Bilangan Bulat','Operasi Pecahan','Akar dan Kuadrat','Rasio','Kecepatan','Volume','Data'],
- 'Kelas 6':['Operasi Bilangan','Rasio','Lingkaran','Volume','Koordinat','Statistika','Peluang'],
- 'Kelas 7':['Bilangan Bulat','Pecahan','Himpunan','Bentuk Aljabar','Persamaan Linear','Perbandingan','Statistika'],
- 'Kelas 8':['Pola Bilangan','Relasi dan Fungsi','Persamaan Garis','SPLDV','Pythagoras','Lingkaran','Peluang'],
- 'Kelas 9':['Bilangan Berpangkat','Persamaan Kuadrat','Transformasi','Kesebangunan','Bangun Ruang','Fungsi Kuadrat','Statistika'],
- 'Kelas 10':['Eksponen','Logaritma','Persamaan Linear','SPLTV','Fungsi Kuadrat','Trigonometri','Statistika'],
- 'Kelas 11':['Matriks','Barisan Aritmetika','Barisan Geometri','Limit','Turunan','Peluang','Lingkaran'],
- 'Kelas 12':['Permutasi','Kombinasi','Bunga Majemuk','Statistika','Limit','Integral','Geometri Ruang']
+import {useEffect,useRef,useState} from 'react';
+import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star, Trophy,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift} from 'lucide-react';
+import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
+import {gradeTopics,grades,islandData,makeMission,topicChips,type Question,type Student,type SchoolConfig} from './learning';
+type View='home'|'materi'|'peringkat'|'pencapaian'|'quiz'|'result'|'admin';
+const api=async(path:string,options:RequestInit={})=>{
+ const response=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{'Content-Type':'application/json',...options.headers}});
+ let data:any;try{data=await response.json()}catch{throw Error('Server tidak mengembalikan respons JSON.')}
+ if(!response.ok)throw Error(String(data.error||'HTTP '+response.status));return data;
 };
-const grades=Object.keys(topics);
-const rand=(a:number,b:number)=>Math.floor(Math.random()*(b-a+1))+a;
-const num=(n:number)=>Number.isInteger(n)?String(n):String(Math.round(n*100)/100);
-function makeQ(prompt:string,answer:number|string,why:string,vals:(number|string)[]=[]):Q{
- const correct=String(answer),opts=new Set([correct]);
- for(const v of vals)if(opts.size<4&&String(v)!==correct)opts.add(String(v));
- if(typeof answer==='number')for(const v of [answer+1,answer-1,answer+2,answer-2,answer*2,answer+5,answer/2])if(opts.size<4&&String(v)!==correct)opts.add(num(v));
- while(opts.size<4)opts.add(String(rand(1,99)));
- return {question:prompt,answer:correct,explanation:why,options:[...opts].sort(()=>Math.random()-.5)};
-}
-function question(grade:string,stage:number):Q{
- const g=parseInt(grade.replace('Kelas ','')),a=rand(2,12),b=rand(2,10),c=rand(2,6);
- if(g<=6){
-  if(stage===0)return makeQ('Berapa hasil '+a+' + '+b+'?',a+b,'Jumlahkan kedua bilangan: '+a+' + '+b+' = '+(a+b)+'.');
-  if(stage===1)return makeQ('Berapa hasil '+(a+b)+' − '+a+'?',b,'Pengurangan adalah kebalikan penjumlahan.');
-  if(stage===2)return makeQ('Berapa hasil '+a+' × '+b+'?',a*b,'Kalikan '+a+' dengan '+b+'.');
-  if(stage===3)return makeQ('Berapa hasil '+(a*b)+' ÷ '+a+'?',b,'Karena '+a+' × '+b+' = '+(a*b)+'.');
-  if(stage===4)return makeQ('Persegi dengan sisi '+a+' cm, kelilingnya ... cm.',4*a,'Keliling persegi = 4 × sisi.');
-  if(stage===5)return makeQ('Persegi panjang panjang '+a+' cm dan lebar '+b+' cm, luasnya ... cm².',a*b,'Luas = panjang × lebar.');
-  return makeQ('Data: '+a+', '+b+', '+(a+b)+'. Nilai terbesar?',a+b,'Bandingkan ketiga angka.');
- }
- switch(g){
- case 7:
-  switch(stage){
-   case 0:return makeQ('Hitung '+a+' − ('+(a+b)+') = ...',-b,'Hasilnya '+a+' − '+(a+b)+' = '+(-b)+'.');
-   case 1:return makeQ('Hitung '+a+'/'+b+' + '+c+'/'+b+' = ...',(a+c)+'/'+b,'Penyebut sama, sehingga pembilang dijumlahkan menjadi '+(a+c)+'/'+b+'.',[(a+c)+'/'+(b*2),(a*c)+'/'+b,a+'/'+(b+c)]);
-   case 2:return makeQ('Jika A = {1,2,3,'+a+'}, jumlah anggota A adalah ...',a===1||a===2||a===3?3:4,'Himpunan tidak menghitung elemen yang berulang.');
-   case 3:return makeQ('Koefisien x dari '+a+'x + '+b+'x = ...',a+b,'Suku sejenis dijumlahkan, sehingga ('+a+'+'+b+')x.');
-   case 4:return makeQ('Jika '+a+'x + '+b+' = '+(a*c+b)+', nilai x adalah ...',c,'Kurangi '+b+', lalu bagi '+a+'.');
-   case 5:return makeQ('Harga '+a+' pensil adalah Rp'+(a*b*1000)+'. Harga 1 pensil adalah ... rupiah.',b*1000,'Gunakan perbandingan senilai, total harga dibagi jumlah pensil.');
-   default:return makeQ('Rata-rata dari '+a+', '+b+', '+(a+b)+' adalah ...',(2*(a+b))/3,'Jumlah data dibagi 3.',[a+b,(a+b)/3]);
-  }
- case 8:
-  switch(stage){
-   case 0:return makeQ('Barisan '+a+', '+(a+b)+', '+(a+2*b)+', ... Suku ke-'+c+' adalah ...',a+(c-1)*b,'Un = a + (n−1)b.');
-   case 1:return makeQ('Diberikan f(x) = '+a+'x + '+b+'. Nilai f('+c+') adalah ...',a*c+b,'Substitusi x='+c+'.');
-   case 2:return makeQ('Gradien garis y = '+a+'x + '+b+' adalah ...',a,'Koefisien x merupakan gradien m.');
-   case 3:return makeQ('x + y = '+(a+b)+' dan x − y = '+(a-b)+'. Nilai y adalah ...',b,'Kurangi kedua persamaan lalu bagi 2.');
-   case 4:return makeQ('Sisi siku-siku segitiga adalah '+(3*c)+' cm dan '+(4*c)+' cm. Sisi miringnya ... cm.',5*c,'Triple Pythagoras 3:4:5.');
-   case 5:return makeQ('Keliling lingkaran dengan r = '+(7*c)+' cm (π = 22/7) adalah ... cm.',44*c,'K = 2πr = 2×22/7×'+(7*c)+'.');
-   default:return makeQ('Peluang muncul angka genap pada dadu bersisi enam adalah ...','1/2','Terdapat 3 angka genap dari 6 hasil yang mungkin.',['1/6','2/6','5/6']);
-  }
- case 9:
-  switch(stage){
-   case 0:return makeQ('2 pangkat '+c+' adalah ...',2**c,'2 dikalikan dengan dirinya sebanyak '+c+' kali.');
-   case 1:return makeQ('Akar terbesar x² − '+(a+b)+'x + '+(a*b)+' = 0 adalah ...',Math.max(a,b),'Persamaan dapat difaktorkan menjadi (x−'+a+')(x−'+b+') = 0.');
-   case 2:return makeQ('Bayangan titik ('+a+','+b+') jika dicerminkan pada sumbu-Y adalah ...','('+(-a)+','+b+')','Refleksi sumbu-Y mengubah tanda koordinat x.',['('+a+','+(-b)+')','('+(-a)+','+(-b)+')','('+b+','+a+')']);
-   case 3:return makeQ('Dua segitiga sebangun memiliki skala 1:'+c+'. Jika sisi kecil '+a+' cm, sisi besar ... cm.',a*c,'Kalikan sisi dengan faktor skala '+c+'.');
-   case 4:return makeQ('Volume kubus dengan panjang rusuk '+a+' cm adalah ... cm³.',a**3,'Volume kubus = rusuk³ = '+a+'³.');
-   case 5:return makeQ('Jika f(x)='+a+'x² + '+b+'x, f('+c+') adalah ...',a*c*c+b*c,'Substitusi x='+c+' ke f(x).');
-   default:return makeQ('Rata-rata data '+a+', '+b+', '+(a+b)+' adalah ...',num(2*(a+b)/3),'Rata-rata = ('+a+'+'+b+'+'+(a+b)+')/3.',[a+b,num((a+b)/3)]);
-  }
- case 10:
-  switch(stage){
-   case 0:return makeQ('Hitung 3^'+c+' = ...',3**c,'Pangkat '+c+' berarti mengalikan bilangan 3 sebanyak '+c+' kali.');
-   case 1:return makeQ('log basis 2 dari '+(2**c)+' = ...',c,'Karena 2^'+c+' = '+(2**c)+'.');
-   case 2:return makeQ('Jika '+a+'x + '+b+' = '+(a*c+b)+', x = ...',c,'Kurangi kedua ruas dengan '+b+' lalu bagi '+a+'.');
-   case 3:return makeQ('x+y+z = '+(a+b+c)+', y='+b+' dan z='+c+'. Maka x = ...',a,'Substitusi nilai y dan z ke persamaan pertama.');
-   case 4:return makeQ('Titik puncak fungsi y = x² − '+(2*c)+'x + '+(c*c)+' memiliki absis ...',c,'Kuadrat sempurna (x−'+c+')², puncak saat x='+c+'.');
-   case 5:return makeQ('Besar sin 30° adalah ...','1/2','Nilai sudut istimewa sin 30° = 1/2.',['1','0','√3/2']);
-   default:return makeQ('Median dari bilangan '+a+', '+b+', '+(a+b)+' adalah ...',Math.max(a,b),'Urutan tiga nilai: yang terkecil, terbesar dari a dan b, serta a+b.');
-  }
- case 11:
-  switch(stage){
-   case 0:return makeQ('Elemen kiri atas A+B jika elemen kiri atas A='+a+' dan B='+b+' adalah ...',a+b,'Penjumlahan matriks dilakukan per elemen.');
-   case 1:return makeQ('Suku ke-'+c+' barisan aritmetika dengan U1='+a+' dan beda='+b+' adalah ...',a+(c-1)*b,'Un=a+(n−1)b.');
-   case 2:return makeQ('Suku ke-'+c+' barisan geometri dengan U1='+a+' dan rasio 2 adalah ...',a*2**(c-1),'Un=ar^(n−1).');
-   case 3:return makeQ('Limit x→'+c+' dari '+a+'x + '+b+' adalah ...',a*c+b,'Fungsi linear kontinu, substitusi x='+c+'.');
-   case 4:return makeQ('Jika f(x)='+a+'x²+'+b+'x, f\'(1)= ...',2*a+b,'f\'(x)=2×'+a+'x + '+b+'.');
-   case 5:return makeQ('Peluang jumlah 7 dari dua dadu adalah ...','1/6','Terdapat 6 hasil berjumlah 7 dari 36 kemungkinan.',['1/12','1/3','7/36']);
-   default:return makeQ('Panjang busur 90° pada lingkaran dengan r='+7*c+' cm (π=22/7) adalah ... cm.',11*c,'Panjang busur = (90/360)×2πr.');
-  }
- case 12:
- default:
-  switch(stage){
-   case 0:return makeQ('Banyak susunan berbeda memilih ketua dan wakil dari '+(a+3)+' orang adalah ...',(a+3)*(a+2),'P(n,2) = n(n−1).');
-   case 1:return makeQ('Banyak cara memilih 2 siswa dari '+(a+3)+' siswa adalah ...',((a+3)*(a+2))/2,'C(n,2) = n(n−1)/2.');
-   case 2:return makeQ('Modal Rp'+(a*100000)+' mendapat bunga majemuk 10% per tahun. Nilai akhir 2 tahun dalam rupiah adalah ...',a*121000,'A=P(1+0,1)^2 = P×1,21.');
-   case 3:return makeQ('Rata-rata data '+a+', '+b+', '+(a+b)+' adalah ...',num(2*(a+b)/3),'Jumlah data dibagi 3.',[a+b,num((a+b)/3)]);
-   case 4:return makeQ('Limit x→'+a+' dari (x²−'+(a*a)+')/(x−'+a+') = ...',2*a,'Faktorkan pembilang menjadi (x−a)(x+a), hasilnya 2a.');
-   case 5:return makeQ('Hasil integral '+(2*c)+'x dx adalah ...',c+'x² + C','Integral ax dx = (a/2)x² + C.',[(2*c)+'x² + C',c+'x + C',c+'x³ + C']);
-   default:return makeQ('Diagonal ruang kubus dengan rusuk '+a+' cm adalah ...',a+'√3 cm','Diagonal ruang kubus d=s√3.',[a+'√2 cm',(3*a)+' cm',a+' cm']);
-  }
- }
-}
-async function api(path:string,options:RequestInit={}):Promise<any>{
- const response=await fetch('/api/'+path,{...options,credentials:'same-origin',headers:{'Content-Type':'application/json',...options.headers},cache:'no-store'});
- let data:any;try{data=await response.json()}catch{throw Error('Server tidak mengembalikan JSON.')}
- if(!response.ok)throw Error(data.error||('HTTP '+response.status));return data;
-}
+function download(blob:Blob,file:string){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function videoId(url:string){try{const u=new URL(url);if(u.hostname==='youtu.be')return u.pathname.slice(1,12);if(['www.youtube.com','youtube.com','m.youtube.com'].includes(u.hostname))return(u.searchParams.get('v')||u.pathname.split('/embed/')[1]||'').slice(0,11)}catch{}return null}
-const audioUrl='https://nusantara-math-adventure.abumumtaz.chatgpt.site/resources/heart-of-nusantara.mp3';
+const quote=['Matematika itu seru!','Kamu hebat! Terus berlatih, ya!','Setiap soal adalah petualangan baru!','Mari belajar sambil mengenal budaya Indonesia!'];
 export default function App(){
- const[page,setPage]=useState<'login'|'map'|'quiz'|'result'|'admin'>('login');
- const[student,setStudent]=useState<Student|null>(null),[name,setName]=useState(''),[grade,setGrade]=useState('Kelas 7');
- const[school,setSchool]=useState<SchoolCfg>({name:'Nusantara Math Adventure',music:true});
+ const[view,setView]=useState<View>('home');
+ const[chosenGrade,setChosenGrade]=useState('Kelas 1'),[student,setStudent]=useState<Student|null>(null),[name,setName]=useState(''),[modal,setModal]=useState(false);
+ const[school,setSchool]=useState<SchoolConfig>({name:'Nusantara Math Adventure',music:true,logoUrl:''});
  const[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
- const[island,setIsland]=useState(0),[questions,setQuestions]=useState<Q[]>([]),[index,setIndex]=useState(0),[answer,setAnswer]=useState(''),[points,setPoints]=useState(0),[earnedXP,setEarnedXP]=useState(0);
- const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Q[]>([]),[filter,setFilter]=useState('Semua'),[query,setQuery]=useState('');
- const[aiTopic,setAiTopic]=useState(''),[aiGrade,setAiGrade]=useState('Kelas 7'),[aiBusy,setAiBusy]=useState(false);
- const[adding,setAdding]=useState(false),[draft,setDraft]=useState<Q>({question:'',options:['','','',''],answer:'',explanation:'',grade:'Kelas 7',topic:''});
+ const[island,setIsland]=useState(0),[questions,setQuestions]=useState<Question[]>([]),[questionIndex,setQuestionIndex]=useState(0),[answer,setAnswer]=useState(''),[correct,setCorrect]=useState(0),[awardedXP,setAwardedXP]=useState(0);
+ const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Question[]>([]);
+ const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>({question:'',options:['','','',''],answer:'',explanation:'',grade:'Kelas 1',topic:''}),[adding,setAdding]=useState(false);
+ const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(''),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false);
- const musicRef=useRef<HTMLAudioElement|null>(null);
- useEffect(()=>{api('school').then((r)=>setSchool(r.school)).catch(()=>{});const saved=localStorage.getItem('nma-student-id');if(saved&&/^[a-f0-9]{32}$/.test(saved)){api('progress/'+saved).then((r)=>{if(r.progress){setStudent(r.progress);setName(r.progress.name);setGrade(r.progress.grade);setPage('map')}}).catch(()=>{})}},[]);
- useEffect(()=>{if(!music&&musicRef.current)musicRef.current.pause();if(music&&musicRef.current)musicRef.current.play().catch(()=>setMusic(false))},[music]);
- useEffect(()=>{if(page!=='admin'||!admin)return;loadAdmin();const t=setInterval(loadAdmin,8000);return()=>clearInterval(t)},[page,admin]);
- const enrolledCount=students.length;
- const totalXP=students.reduce((a,s)=>a+s.xp,0);
- const filtered=students.filter(s=>(filter==='Semua'||s.grade===filter)&&s.name.toLowerCase().includes(query.toLowerCase()));
- const today=new Date().toLocaleDateString('id-ID');
- function speak(text:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(text);utter.lang='id-ID';utter.rate=.93;window.speechSynthesis.speak(utter)}
- async function enrol(){
-  const clean=name.trim();if(clean.length<2){setError('Masukkan nama siswa minimal 2 huruf.');return}
-  setBusy(true);setError('');
-  try{const newId=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
-   const p:Student={id:newId,name:clean,grade,xp:0,gamesPlayed:0,completed:[],recent:[]};
-   await api('progress/'+newId,{method:'PUT',body:JSON.stringify(p)});localStorage.setItem('nma-student-id',newId);setStudent(p);setPage('map');setNotice('Selamat datang, '+clean+'! Pilih sebuah pulau untuk memulai.');speak('Selamat datang di Nusantara Math Adventure.')}
-  catch(e:any){setError(e.message)}finally{setBusy(false)}
- }
- function exit(){localStorage.removeItem('nma-student-id');setStudent(null);setPage('login');setName('');setMusic(false);setError('')}
- async function begin(i:number){if(!student)return;setBusy(true);setError('');try{
-  const data=await api('public/questions?grade='+encodeURIComponent(student.grade));
-  const teacher:Q[]=(data.questions||[]).filter((q:Q)=>!q.topic||q.topic===topics[student.grade][i]);
-  const chosen=[...teacher.sort(()=>Math.random()-.5).slice(0,4),...Array.from({length:8},()=>question(student.grade,i))].slice(0,8);
-  setQuestions(chosen);setIsland(i);setIndex(0);setPoints(0);setAnswer('');setPage('quiz');speak(locations[i].story);
+ const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
+ const rank=student?(student.completed.length>=7?'Penjelajah Nusantara':student.completed.length>=4?'Pelaut Emas':student.completed.length>=1?'Petualang Hebat':'Petualang Baru'):'Ayo Jadi Petualang';
+ const daily=student?.recent.some(x=>new Date(x.date).toDateString()===new Date().toDateString())??false;
+ const sample=islandData[0];
+ const gradeIndex=Number(chosenGrade.replace('Kelas ','')),profileGrade=student?.grade??chosenGrade;
+ useEffect(()=>{api('school').then((r)=>setSchool(r.school)).catch(()=>{});
+  const saved=localStorage.getItem('nma-student-id');
+  if(saved&&/^[a-f0-9]{32}$/.test(saved))api('progress/'+saved).then((r)=>{if(r.progress&&grades.includes(r.progress.grade)){setStudent(r.progress);setName(r.progress.name);setChosenGrade(r.progress.grade)}else localStorage.removeItem('nma-student-id')}).catch(()=>{});
+ },[]);
+ useEffect(()=>{if(!audioRef.current)return;if(music)audioRef.current.play().catch(()=>{setMusic(false);setNotice('Musik belum tersedia. Narasi suara tetap bisa digunakan.');});else audioRef.current.pause()},[music]);
+ useEffect(()=>{if(view!=='admin'||!admin)return;loadAdmin();const timer=setInterval(loadAdmin,8000);return()=>clearInterval(timer)},[view,admin]);
+ function say(t:string){if(!voice||!('speechSynthesis'in window))return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(t);utter.lang='id-ID';utter.rate=.87;window.speechSynthesis.speak(utter)}
+ function navigate(next:View){setView(next);setError('');window.scrollTo({top:0,behavior:'smooth'});}
+ function mapScroll(){setView('home');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),100)}
+ function levelPick(g:string){if(student&&student.grade!==g){setNotice('Untuk mengganti kelas, keluar dari profil siswa terlebih dahulu.');return}setChosenGrade(g)}
+ function needStudent(){if(student)return true;setModal(true);setNotice('Masukkan nama dan kelas untuk menyimpan petualanganmu.');return false}
+ async function enroll(){const clean=name.trim();if(clean.length<2){setError('Tuliskan nama siswa sedikitnya 2 huruf.');return}if(!grades.includes(chosenGrade)){setError('Pilih kelas SD 1 sampai 6.');return}
+ setBusy(true);setError('');
+ try{const id=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
+  const p:Student={id,name:clean,grade:chosenGrade,xp:0,gamesPlayed:0,completed:[],recent:[]};
+  const r=await api('progress/'+id,{method:'PUT',body:JSON.stringify(p)});
+  const saved=r.progress||p;localStorage.setItem('nma-student-id',id);setStudent(saved);setModal(false);setNotice('Selamat datang, '+clean+'! Pilih salah satu pulau di peta.');say('Selamat datang di Nusantara Math Adventure!');
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function finish(){if(!student)return;const completed=[...new Set([...student.completed,island+1])];const awarded=points*25+(!student.completed.includes(island+1)?50:0);const xp=student.xp+awarded;setEarnedXP(awarded);
- const p:Student={...student,completed,xp,gamesPlayed:student.gamesPlayed+1,recent:[...student.recent,{region:locations[island].name,score:points,total:questions.length,date:new Date().toISOString()}].slice(-25)};
- setStudent(p);setPage('result');setNotice('');
- try{await api('progress/'+p.id,{method:'PUT',body:JSON.stringify(p)});setNotice('Progres tersimpan permanen.')}catch(e:any){setError('Hasil tersimpan sementara di layar tetapi gagal disinkronkan: '+e.message)}
- }
- async function loginAdmin(){setBusy(true);setError('');try{await api('admin/login',{method:'POST',body:JSON.stringify({password})});setAdmin(true);setPassword('');await loadAdmin()}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function loadAdmin(){try{const [m,b]=await Promise.all([api('admin/monitor'),api('bank')]);setStudents(m.students||[]);setBank(b.questions||[]);setAdmin(true)}catch(e:any){setError(e.message);if(e.message.includes('Login'))setAdmin(false)}}
- async function logoutAdmin(){await api('admin/logout',{method:'POST'}).catch(()=>{});setAdmin(false);setStudents([]);setBank([]);setPage(student?'map':'login')}
- async function saveBank(items:Q[]){setBusy(true);setError('');try{await api('bank',{method:'PUT',body:JSON.stringify({questions:items})});setBank(items);setAdding(false);setNotice('Bank soal diperbarui.')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function generateAI(){if(!aiTopic.trim()){setError('Tulis topik matematika terlebih dahulu.');return}setAiBusy(true);setError('');try{const r=await api('admin/generate',{method:'POST',body:JSON.stringify({grade:aiGrade,topic:aiTopic})});if(!r.questions?.length)throw Error('AI belum menghasilkan soal valid.');await saveBank([...bank,...r.questions.map((q:Q)=>({...q,grade:aiGrade,topic:aiTopic}))]);setNotice(r.questions.length+' soal AI berhasil dimasukkan ke bank soal.')}catch(e:any){setError(e.message)}finally{setAiBusy(false)}}
- async function exportExcel(){try{const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Prestasi Siswa');ws.addRow(['Nama','Kelas','XP','Misi Selesai','Kuis Dikerjakan','Update Terakhir']);students.forEach(s=>ws.addRow([s.name,s.grade,s.xp,s.completed.length,s.gamesPlayed,s.updatedAt]));const blob=new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});download(blob,'laporan-nusantara.xlsx')}catch(e:any){setError('Ekspor Excel gagal: '+e.message)}}
- function download(blob:Blob,file:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
- async function exportPDF(){try{const {jsPDF}=await import('jspdf');const pdf=new jsPDF();pdf.setFontSize(17);pdf.text('Laporan Nusantara Math Adventure',14,20);pdf.setFontSize(10);let y=34;students.slice(0,65).forEach((s,i)=>{if(y>278){pdf.addPage();y=20}pdf.text((i+1)+'. '+s.name+' — '+s.grade+' — '+s.xp+' XP',14,y);y+=7});pdf.save('laporan-nusantara.pdf')}catch(e:any){setError('Ekspor PDF gagal: '+e.message)}}
- async function cert(){if(!student)return;const {jsPDF}=await import('jspdf');const pdf=new jsPDF({orientation:'landscape'});pdf.setFillColor(8,61,76);pdf.rect(0,0,297,210,'F');pdf.setDrawColor(250,199,92);pdf.setLineWidth(3);pdf.rect(12,12,273,186);pdf.setTextColor(255,235,162);pdf.setFontSize(34);pdf.text('SERTIFIKAT PETUALANGAN',148,58,{align:'center'});pdf.setTextColor(255,255,255);pdf.setFontSize(18);pdf.text(student.name,148,97,{align:'center'});pdf.setFontSize(13);pdf.text(student.grade+' | '+student.xp+' XP | '+student.completed.length+' pulau ditaklukkan',148,122,{align:'center'});pdf.text('NUSANTARA MATH ADVENTURE PRO',148,168,{align:'center'});pdf.save('sertifikat-'+student.name.replace(/[^a-zA-Z0-9]/g,'-')+'.pdf')}
- function goAdmin(){setError('');setPage('admin');api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>{})}
- const medal=student?(student.completed.length>=7?'Penjelajah Legendaris':student.completed.length>=4?'Pelaut Emas':student.completed.length>=1?'Penjelajah Pemula':'Calon Petualang'):'';
- return <div className="shell">
-  <audio ref={musicRef} src={audioUrl} loop preload="none" onError={()=>{if(music){setMusic(false);setNotice('Musik asli tidak dapat dijangkau dari situs sumber.')}}}/>
-  <header className="header"><button className="identity" onClick={()=>setPage(student?'map':'login')}><span className="logo">⛵</span><span><b>NUSANTARA MATH</b><small>ADVENTURE <em>PRO</em></small></span></button>
-    <div className="nav"><span className="nav-caption">Petualangan Matematika Indonesia</span><button title="Narasi suara" className="iconbtn" onClick={()=>setVoice(!voice)}>{voice?<Headphones size={18}/>:<VolumeX size={18}/>}</button><button title="Musik latar" className="iconbtn" onClick={()=>setMusic(!music)}>{music?<Volume2 size={18}/>:<VolumeX size={18}/>}</button>
-    {student&&page!=='admin'&&<button className="quiet" onClick={exit}><LogOut size={15}/> Keluar</button>}
-    {page==='admin'?<button className="quiet" onClick={()=>setPage(student?'map':'login')}><ArrowLeft size={16}/> Kembali</button>:<button className="admin-btn" onClick={goAdmin}><ShieldCheck size={15}/> Admin</button>}</div>
+ function signout(){localStorage.removeItem('nma-student-id');setStudent(null);setName('');setMusic(false);navigate('home')}
+ async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
+ try{const r=await api('public/questions?grade='+encodeURIComponent(s.grade));const topic=gradeTopics[s.grade][i];
+  const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>!q.topic||q.topic===topic);
+  const generated=makeMission(s.grade,i,8);const qs=[...fromBank.slice(0,3).map(q=>({...q,cultureId:islandData[i].id})),...generated].slice(0,8);
+  setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+islandData[i].fact);
+ }catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function finish(){if(!student)return;const wasDone=student.completed.includes(island+1),earned=correct*25+(wasDone?0:50)+(daily?0:20),completed=[...new Set([...student.completed,island+1])];
+ const p:Student={...student,completed,xp:student.xp+earned,gamesPlayed:student.gamesPlayed+1,recent:[...student.recent,{region:islandData[island].name,score:correct,total:questions.length,date:new Date().toISOString()}].slice(-25)};
+ setAwardedXP(earned);setStudent(p);navigate('result');try{const r=await api('progress/'+p.id,{method:'PUT',body:JSON.stringify(p)});setStudent(r.progress||p);setNotice('Hasil petualangan tersimpan!')}catch(e:any){setError('Progres belum tersinkron: '+e.message)}}
+ async function loginAdmin(){setBusy(true);setError('');try{const r=await api('admin/login',{method:'POST',body:JSON.stringify({password})});if(!r.user)throw Error('Login tidak berhasil');setAdmin(true);setPassword('');await loadAdmin()}catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function loadAdmin(){try{const [m,b]=await Promise.all([api('admin/monitor'),api('bank')]);setStudents(m.students||[]);setBank(b.questions||[]);setAdmin(true)}catch(e:any){setError(e.message);if(e.message.toLowerCase().includes('login'))setAdmin(false)}}
+ async function logoutAdmin(){await api('admin/logout',{method:'POST'}).catch(()=>{});setAdmin(false);setStudents([]);setBank([]);navigate('home')}
+ async function saveBank(items:Question[]){setBusy(true);setError('');try{await api('bank',{method:'PUT',body:JSON.stringify({questions:items})});setBank(items);setAdding(false);setNotice('Bank soal berhasil disimpan.')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function generateAI(){if(!aiTopic.trim())return setError('Isi topik soal terlebih dahulu.');setAiBusy(true);setError('');try{
+  const r=await api('admin/generate',{method:'POST',body:JSON.stringify({grade:aiGrade,topic:aiTopic,region:aiRegion})});
+  const zone=islandData.find(i=>i.name===aiRegion)||islandData[0];
+  const items:Question[]=(r.questions||[]).map((q:Question)=>({...q,grade:aiGrade,topic:aiTopic,cultureId:zone.id}));
+  if(!items.length)throw Error('AI belum menghasilkan soal valid.');await saveBank([...bank,...items]);setNotice(items.length+' soal berbasis budaya berhasil ditambahkan.');
+ }catch(e:any){setError(e.message)}finally{setAiBusy(false)}}
+ async function saveSchool(){try{const r=await api('school',{method:'PUT',body:JSON.stringify(school)});setSchool(r.school);setNotice('Identitas sekolah disimpan.')}catch(e:any){setError(e.message)}}
+ async function excel(){try{const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Perkembangan Siswa');ws.addRow(['Nama','Kelas','XP','Pulau','Misi dimainkan','Diperbarui']);students.forEach(s=>ws.addRow([s.name,s.grade,s.xp,s.completed.length,s.gamesPlayed,s.updatedAt||'']));download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'laporan-nusantara-sd.xlsx')}catch(e:any){setError('Ekspor Excel gagal: '+e.message)}}
+ async function pdf(){try{const {jsPDF}=await import('jspdf');const d=new jsPDF();d.setFontSize(18);d.text('Laporan Petualangan Matematika SD',14,20);d.setFontSize(10);let y=33;students.forEach((s,i)=>{if(y>274){d.addPage();y=20}d.text((i+1)+'. '+s.name+' | '+s.grade+' | '+s.xp+' XP | '+s.completed.length+'/7 pulau',14,y);y+=7});d.save('laporan-nusantara-sd.pdf')}catch(e:any){setError(e.message)}}
+ async function certificate(){if(!student)return;const {jsPDF}=await import('jspdf');const d=new jsPDF({orientation:'landscape'});d.setFillColor(25,107,170);d.rect(0,0,297,210,'F');d.setDrawColor(255,207,89);d.setLineWidth(3);d.rect(12,12,273,186);d.setTextColor(255,235,156);d.setFontSize(34);d.text('SERTIFIKAT PETUALANGAN',148,57,{align:'center'});d.setTextColor(255,255,255);d.setFontSize(24);d.text(student.name,148,94,{align:'center'});d.setFontSize(15);d.text(student.grade+'  •  '+student.completed.length+' pulau  •  '+student.xp+' XP',148,123,{align:'center'});d.text('NUSANTARA MATH ADVENTURE SD',148,174,{align:'center'});d.save('sertifikat-'+student.name.replace(/[^a-zA-Z0-9]/g,'-')+'.pdf')}
+ const visible=students.filter(s=>grades.includes(s.grade)&&(filter==='Semua'||s.grade===filter)&&s.name.toLowerCase().includes(query.toLowerCase()));
+ return <div className="app-shell">
+  <audio ref={audioRef} src="https://nusantara-math-adventure.abumumtaz.chatgpt.site/resources/heart-of-nusantara.mp3" loop preload="none"/>
+  <header className="topbar">
+   <button className="brand" onClick={()=>navigate('home')} aria-label="Beranda Nusantara Math Adventure"><span className="wheel">🧭</span><span><b>Nusantara</b><strong>Math Adventure</strong></span></button>
+   <nav className="topnav" aria-label="Menu utama">
+    <button className={view==='home'?'active':''} onClick={()=>navigate('home')}><Home size={17}/> Beranda</button>
+    <button onClick={mapScroll}><MapIcon size={18}/> Peta Petualangan</button>
+    <button className={view==='materi'?'active':''} onClick={()=>navigate('materi')}><BookOpen size={17}/> Materi</button>
+    <button className={view==='quiz'?'active':''} onClick={()=>startMission(Math.max(0,(student?.completed.length||0)%7))}><Play size={17}/> Latihan & Kuis</button>
+    <button className={view==='peringkat'?'active':''} onClick={()=>navigate('peringkat')}><Trophy size={17}/> Peringkat</button>
+    <button className={view==='pencapaian'?'active':''} onClick={()=>navigate('pencapaian')}><Star size={17}/> Pencapaian</button>
+   </nav>
+   <div className="top-actions"><button className="audio-toggle" title="Narasi bahasa Indonesia" onClick={()=>setVoice(x=>!x)}>{voice?<Headphones size={19}/>:<VolumeX size={19}/>}</button><button className="audio-toggle" title="Musik" onClick={()=>setMusic(x=>!x)}>{music?<Volume2 size={19}/>:<VolumeX size={19}/>}</button>{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk</button>}</div>
   </header>
-  {error&&<div className="toast error" role="alert"><XCircle size={16}/>{error}<button onClick={()=>setError('')}>×</button></div>}
-  {notice&&<div className="toast good"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')}>×</button></div>}
-  {page==='login'&&<main className="landing"><section className="hero"><span className="eyebrow"><Sparkles size={16}/> PETUALANGAN EDUKASI DIGITAL</span><h1>Jelajahi Nusantara,<br/><span>Taklukkan Matematika!</span></h1><p>Berlayar dari Sumatra hingga Papua. Pecahkan soal matematika, kumpulkan koin dan XP, dan raih gelar penjelajah hebat.</p><div className="hero-badges"><span>🧭 7 Pulau</span><span>📚 Kelas 1–12</span><span>🏆 Badge & Sertifikat</span></div>
-    <div className="ship-scene" aria-hidden="true"><span className="sun">☀️</span><span className="cloud">☁️</span><span className="hero-island">🏝️</span><span className="hero-ship">⛵</span><div className="water"/></div></section>
-    <section className="login-card"><div className="login-icon"><Compass size={26}/></div><h2>Siap Berpetualang?</h2><p>Masuk dengan nama dan kelas, tanpa PIN siswa.</p><label>Nama lengkap siswa<input value={name} onChange={e=>setName(e.target.value)} placeholder="Contoh: Mumtaz Abdullah" maxLength={80}/></label><label>Kelas<select value={grade} onChange={e=>setGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select></label><button className="primary wide" disabled={busy} onClick={enrol}><Ship size={18}/>{busy?'Menghubungkan…':'Mulai Petualangan'}</button><p className="privacy">🔐 Progres siswa disimpan melalui backend privat.</p></section>
+  {error&&<div role="alert" className="flash err"><XCircle size={16}/>{error}<button onClick={()=>setError('')} aria-label="Tutup">×</button></div>}
+  {notice&&<div className="flash ok"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')} aria-label="Tutup">×</button></div>}
+  {view==='home'&&<main>
+   <section className="banner"><ExplorerHero/><div className="banner-copy"><div className="wood">Nusantara Math Adventure</div><h1>Ayo Belajar Matematika<br/><span>Keliling Nusantara!</span></h1><p>Jelajahi pulau-pulau Indonesia, kenali budayanya,<br/>selesaikan misi matematika, dan kumpulkan bintang!</p></div><button className="start-hero" onClick={()=>{if(!student)setModal(true);else mapScroll()}}><Play size={25} fill="currentColor"/> Mulai Petualangan</button></section>
+   <div className="main-width">
+    <section className="class-strip"><div className="class-label">🎓 <b>Pilih Kelasmu<small>(SD Kelas 1–6)</small></b></div><div className="class-buttons">{grades.map((g,i)=><button key={g} style={{'--grade-color':['#ff4f8d','#ff893a','#ffcb39','#76c94c','#279cfa','#a75bf3'][i]} as React.CSSProperties} className={chosenGrade===g?'selected':''} onClick={()=>levelPick(g)}>{g}</button>)}</div></section>
+    <section className="topic-strip" aria-label="Topik Matematika SD">{topicChips.map(([emoji,label])=><button key={label} onClick={()=>navigate('materi')}><span>{emoji}</span>{label}</button>)}</section>
+    <div className="game-layout">
+     <aside className="player-card">
+      <div className="player-name"><div className="avatar">👧🏽</div><div><small>Halo, Petualang! 👋</small><b>{student?.name||'Sahabat Nusantara'}</b><span>SD {profileGrade}</span></div></div>
+      <div className="level-card"><div className="level-label"><span>🌟</span><div><b>Level {student?Math.floor(student.xp/250)+1:1}</b><small>{rank}</small></div></div><div className="progress-rail"><div style={{width:((student?.xp||0)%250)/250*100+'%'}}/></div><small>{student?.xp||0} XP • Menuju level berikutnya</small></div>
+      <div className="stats"><div><span>⭐ Bintang</span><b>{student?Math.floor(student.xp/25):0}</b></div><div><span>🏅 Lencana</span><b>{student?.completed.length||0}</b></div><div><span>🚩 Misi Selesai</span><b>{student?.completed.length||0} / 7</b></div></div>
+      <div className="daily-card"><b>🎯 Target Petualangan</b><p>Selesaikan tujuh misi pulau untuk menjadi Penjelajah Nusantara!</p><div className="progress-rail"><div style={{width:((student?.completed.length||0)/7*100)+'%'}}/></div><small>{student?.completed.length||0}/7 pulau • {daily?'Misi hari ini selesai ✅':'Misi harian menunggu ✨'}</small></div>
+      <button className="profile-action" onClick={()=>student?navigate('pencapaian'):setModal(true)}>{student?'Lihat Pencapaian':'Masuk sebagai Siswa'} <ChevronRight size={15}/></button>
+     </aside>
+     <section className="map-card" ref={mapRef} id="peta"><div className="map-heading"><h2>🧭 Peta Petualangan Nusantara</h2><small>Klik pin pulau untuk bermain</small></div><IndonesiaMap completed={student?.completed||[]} onSelect={startMission}/><div className="map-foot"><span>⛵ Kapalmu siap berlayar!</span><span>7 Pulau • 7 Budaya • 7 Misi</span></div></section>
+     <aside className="sample-card"><h2>🎮 Contoh Misi Matematika</h2><CultureArt id={sample.id}/><div className="sample-text"><small>🏡 DARI PULAU SUMATRA</small><p>Di halaman Rumah Gadang ada <b>8 anak</b> sedang menari Tari Piring. Kemudian, <b>4 anak</b> lagi ikut menari.</p><strong>Berapa jumlah anak yang menari sekarang?</strong></div><div className="sample-options">{['10','11','12','13'].map((v,i)=><button key={v} onClick={()=>{setNotice(i===2?'Benar! 8 + 4 = 12. Hebat! 🎉':'Coba lagi. Jumlahkan 8 dan 4, ya!')}}><b>{String.fromCharCode(65+i)}</b>{v}</button>)}</div><button className="sample-cta" onClick={()=>startMission(0)}>Coba misi Sumatra <Play size={15}/></button></aside>
+    </div>
+    <section className="culture-section"><div className="wood-label">🌺 Kenali Budaya Nusantara di Setiap Misi!</div><div className="culture-cards">{islandData.map((item,i)=><button className="culture-tile" key={item.id} onClick={()=>startMission(i)}><CultureArt id={item.id} label={false}/><strong>{item.name}</strong><span>{item.culture}</span></button>)}</div></section>
+    <div className="after-story"><div><b>🧩 Belajar sambil bermain</b><p>Setiap soal disertai ilustrasi budaya, pembahasan matematika, dan cerita tentang daerah di Indonesia.</p></div><button onClick={()=>navigate('materi')}>Lihat Materi SD <ChevronRight size={17}/></button></div>
+   </div>
   </main>}
-  {page==='map'&&student&&<main className="content"><div className="greeting"><div><span className="eyebrow"><Compass size={16}/> SELAMAT DATANG, PETUALANG</span><h1>Halo, {student.name.split(' ')[0]}! 👋</h1><p>Pilih pulau dan selesaikan misi <b>{student.grade}</b>.</p></div><div className="badge-rank"><Medal size={23}/><span><b>{medal}</b><small>{student.completed.length}/7 pulau selesai</small></span></div></div>
-  <div className="metrics"><div className="metric"><Star className="gold"/><span><b>{student.xp.toLocaleString('id-ID')}</b><small>Total XP</small></span></div><div className="metric"><Trophy className="mint"/><span><b>{student.completed.length}/7</b><small>Pulau selesai</small></span></div><div className="metric"><BookOpen className="blue"/><span><b>{student.gamesPlayed}</b><small>Latihan dikerjakan</small></span></div><div className="metric"><Crown className="gold"/><span><b>{Math.floor(student.xp/10)}</b><small>Koin Nusantara</small></span></div></div>
-  <div className="section-label"><h2><MapPinned size={23}/> Peta Petualangan Nusantara</h2><span>Ketuk pulau untuk memulai misi</span></div>
-  <div className="map-board"><div className="map-title">LAUT NUSANTARA <span>✧</span></div><div className="map-waves"/>{locations.map((l,i)=><button key={l.name} disabled={busy} onClick={()=>begin(i)} className={'island '+(student.completed.includes(i+1)?'cleared':'')} style={{left:l.x+'%',top:l.y+'%'}}><span className="island-emoji">{l.emoji}</span><span className="island-name">{l.name}</span>{student.completed.includes(i+1)&&<span className="island-done">✓</span>}</button>)}<span className="ship-floating">⛵</span><span className="compass-icon">✣</span></div>
-  <div className="section-label"><h2><BookOpen size={23}/> Misi Matematika {student.grade}</h2><span>7 tahap pembelajaran</span></div><div className="island-cards">{locations.map((l,i)=><article key={l.name} className="mission-card"><span className="mission-art">{l.emoji}</span><div><small>MISI {i+1} · {l.name.toUpperCase()}</small><h3>{topics[student.grade]?.[i]||'Matematika'}</h3><p>{l.story}</p><button onClick={()=>begin(i)} disabled={busy} className="mission-btn">{student.completed.includes(i+1)?'Ulangi misi':'Mulai misi'} <Play size={14}/></button></div>{student.completed.includes(i+1)&&<span className="tick">✓</span>}</article>)}</div>
-  <div className="bottom-banner"><span>🏅</span><div><b>Hadiah hari ini: {today}</b><p>Selesaikan satu misi untuk memperoleh XP dan melanjutkan perjalanan.</p></div><button onClick={()=>cert()}><Download size={16}/> Sertifikat</button></div></main>}
-  {page==='quiz'&&student&&questions.length>0&&<main className="quiz-wrap"><button className="backlink" onClick={()=>setPage('map')}><ArrowLeft size={15}/> Kembali ke peta</button><div className="quiz-head"><span>⛵ MISI {island+1} · {locations[island].name}</span><b>{topics[student.grade][island]}</b><p>{locations[island].story}</p></div><div className="quiz-progress"><div style={{width:((index+1)/questions.length*100)+'%'}}/></div><section className="quiz-card"><div className="quiz-meta"><span>SOAL {index+1} DARI {questions.length}</span><span>⭐ {points} benar</span></div><h2>{questions[index].question}</h2>{questions[index].imageUrl&&<img alt="Ilustrasi soal" className="question-image" src={questions[index].imageUrl}/>}
-  {questions[index].videoUrl&&videoId(questions[index].videoUrl!)&&<iframe className="question-video" title="Video soal" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[index].videoUrl!)} allowFullScreen/>}
-  {questions[index].audioUrl&&<audio controls src={questions[index].audioUrl}/>}
-  <div className="options">{questions[index].options.map((o,j)=><button key={j} disabled={!!answer} className={'option '+(answer?(o===questions[index].answer?'correct':o===answer?'wrong':''):'')} onClick={()=>{setAnswer(o);if(o===questions[index].answer)setPoints(v=>v+1);speak(o===questions[index].answer?'Jawaban benar, hebat!':'Belum tepat. Simak pembahasannya.')}}><span>{String.fromCharCode(65+j)}</span>{o}{answer&&o===questions[index].answer&&<CheckCircle2 size={19}/>}</button>)}</div>
-  {answer&&<div className="explanation"><b>💡 Pembahasan {answer===questions[index].answer?'— Jawaban Tepat!':'— Pelajari lagi'}</b><p>{questions[index].explanation}</p></div>}
-  <button className="primary wide" disabled={!answer} onClick={()=>{if(index+1===questions.length)finish();else{setIndex(index+1);setAnswer('')}}}>{index+1===questions.length?'Selesaikan Misi':'Soal Berikutnya →'}</button></section></main>}
-  {page==='result'&&student&&<main className="result"><div className="result-emoji">🏆</div><span className="eyebrow">MISI BERHASIL DISELESAIKAN</span><h1>Hebat, {student.name.split(' ')[0]}!</h1><p>Petualangan di {locations[island].name} telah selesai.</p><div className="score">{points}<small> / {questions.length} soal benar</small></div><div className="result-reward">✨ +{earnedXP} XP</div><div className="result-actions"><button className="primary" onClick={()=>setPage('map')}><MapPinned size={17}/> Kembali ke peta</button><button className="quiet" onClick={()=>begin(island)}><RefreshCw size={17}/> Ulangi</button><button className="quiet" onClick={()=>cert()}><Download size={17}/> Sertifikat PDF</button></div></main>}
-  {page==='admin'&&<main className="admin-area"><div className="admin-heading"><span className="eyebrow"><ShieldCheck size={16}/> PORTAL ADMINISTRATOR</span><h1>Dashboard Guru & Administrator</h1><p>Pantau pembelajaran, kelola soal, dan identitas sekolah.</p></div>
-  {!admin?<section className="admin-login"><div className="login-icon"><LockKeyhole size={26}/></div><h2>Login Administrator</h2><p>Khusus pengelola sekolah. Siswa tidak memerlukan PIN.</p><label>Kata sandi admin<input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Kata sandi admin" onKeyDown={e=>e.key==='Enter'&&loginAdmin()}/></label><button className="primary wide" disabled={busy} onClick={loginAdmin}>{busy?'Memeriksa…':'Masuk Dashboard'}</button><small>Administrator harus dikonfigurasi di Environment Variables Vercel.</small></section>:
-  <div className="admin-body"><div className="admin-toolbar"><b><ShieldCheck size={18}/> Sesi administrator aktif</b><button onClick={logoutAdmin} className="quiet"><LogOut size={15}/> Keluar admin</button></div>
-  <div className="metrics"><div className="metric"><GraduationCap className="blue"/><span><b>{enrolledCount}</b><small>Profil siswa</small></span></div><div className="metric"><Star className="gold"/><span><b>{totalXP}</b><small>Total XP</small></span></div><div className="metric"><BookOpen className="mint"/><span><b>{bank.length}</b><small>Bank soal</small></span></div><div className="metric"><RefreshCw className="blue"/><span><b>8 dtk</b><small>Interval pemantauan</small></span></div></div>
-  <section className="admin-panel"><div className="panel-heading"><div><h2>Aktivitas siswa</h2><p>Penyimpanan privat; diperbarui berkala.</p></div><div className="buttons"><button className="quiet" onClick={loadAdmin}><RefreshCw size={15}/> Segarkan</button><button className="quiet" onClick={exportExcel}><Download size={15}/> Excel</button><button className="quiet" onClick={exportPDF}><Download size={15}/> PDF</button></div></div>
-  <div className="filters"><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Semua</option>{grades.map(g=><option key={g}>{g}</option>)}</select><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari nama siswa…"/></div>
-  <div className="table-scroll"><table><thead><tr><th>Nama Siswa</th><th>Kelas</th><th>XP</th><th>Misi</th><th>Latihan</th><th>Update</th></tr></thead><tbody>{filtered.length?filtered.map(s=><tr key={s.id}><td><b>{s.name}</b></td><td>{s.grade}</td><td>{s.xp}</td><td>{s.completed.length}/7</td><td>{s.gamesPlayed}</td><td>{s.updatedAt?new Date(s.updatedAt).toLocaleString('id-ID'):'-'}</td></tr>):<tr><td colSpan={6}>Belum ada progres siswa yang tercatat.</td></tr>}</tbody></table></div></section>
-  <section className="admin-panel"><div className="panel-heading"><div><h2><WandSparkles size={22}/> Generator Soal Ollama Cloud</h2><p>AI tersedia setelah OLLAMA_API_KEY dikonfigurasi.</p></div></div><div className="generation"><select value={aiGrade} onChange={e=>setAiGrade(e.target.value)}>{grades.filter(g=>parseInt(g.replace('Kelas ',''))>=7).map(g=><option key={g}>{g}</option>)}</select><input value={aiTopic} onChange={e=>setAiTopic(e.target.value)} placeholder="Topik, mis. Persamaan Kuadrat"/><button className="primary" disabled={aiBusy} onClick={generateAI}><WandSparkles size={16}/>{aiBusy?'Menghasilkan…':'Generate 5 Soal'}</button></div></section>
-  <section className="admin-panel"><div className="panel-heading"><div><h2>Bank Soal ({bank.length})</h2><p>Soal tambahan otomatis masuk ke latihan sesuai kelas/topik.</p></div><button className="quiet" onClick={()=>setAdding(v=>!v)}><Plus size={16}/> Tambah Manual</button></div>
-  {adding&&<div className="editor"><div className="filters"><select value={draft.grade||'Kelas 7'} onChange={e=>setDraft({...draft,grade:e.target.value})}>{grades.map(g=><option key={g}>{g}</option>)}</select><input placeholder="Topik (opsional)" value={draft.topic||''} onChange={e=>setDraft({...draft,topic:e.target.value})}/></div><textarea placeholder="Teks soal" value={draft.question} onChange={e=>setDraft({...draft,question:e.target.value})}/>{draft.options.map((o,i)=><input key={i} placeholder={'Pilihan '+String.fromCharCode(65+i)} value={o} onChange={e=>setDraft({...draft,options:draft.options.map((x,j)=>i===j?e.target.value:x)})}/>)}<label>Kunci jawaban<select value={draft.answer} onChange={e=>setDraft({...draft,answer:e.target.value})}><option value="">Pilih jawaban benar</option>{draft.options.map((o,i)=><option key={i} value={o}>{String.fromCharCode(65+i)} — {o}</option>)}</select></label><textarea placeholder="Pembahasan" value={draft.explanation} onChange={e=>setDraft({...draft,explanation:e.target.value})}/><input placeholder="URL gambar (HTTPS, opsional)" value={draft.imageUrl||''} onChange={e=>setDraft({...draft,imageUrl:e.target.value})}/><input placeholder="URL YouTube (opsional)" value={draft.videoUrl||''} onChange={e=>setDraft({...draft,videoUrl:e.target.value})}/><input placeholder="URL audio (opsional)" value={draft.audioUrl||''} onChange={e=>setDraft({...draft,audioUrl:e.target.value})}/><button className="primary" disabled={!draft.question||!draft.answer||!draft.explanation||draft.options.some(x=>!x)} onClick={()=>saveBank([...bank,{...draft}])}>Simpan Soal</button></div>}
-  <div className="banklist">{bank.slice(-30).reverse().map((q,i)=><div key={i} className="bankitem"><span>{q.grade} · {q.topic||'Umum'}</span><b>{q.question}</b><button onClick={()=>saveBank(bank.filter(x=>x!==q))}>Hapus</button></div>)}{bank.length===0&&<p>Bank soal masih kosong. Tambahkan soal manual atau gunakan AI.</p>}</div></section>
-  <section className="admin-panel"><div className="panel-heading"><div><h2><School size={22}/> Identitas Sekolah</h2><p>Nama sekolah ditampilkan pada laman permainan.</p></div></div><div className="generation"><input value={school.name} onChange={e=>setSchool({...school,name:e.target.value})} placeholder="Nama sekolah"/><input value={school.logoUrl||''} onChange={e=>setSchool({...school,logoUrl:e.target.value})} placeholder="URL logo sekolah HTTPS"/><button className="primary" onClick={async()=>{try{const r=await api('school',{method:'PUT',body:JSON.stringify(school)});setSchool(r.school);setNotice('Pengaturan sekolah disimpan')}catch(e:any){setError(e.message)}}}><Settings size={16}/> Simpan</button></div></section>
-  </div>}</main>}
-  <footer><span>⛵ {school.name}</span><span>Nusantara Math Adventure Pro • Pendidikan matematika Indonesia</span></footer>
- </div>
+  {view==='materi'&&<main className="inner-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Beranda</button><span className="section-tag">📚 KURIKULUM MERDEKA · SEKOLAH DASAR</span><h1>Materi Matematika SD</h1><p>Pilih kelas dan pelajari tujuh topik matematika melalui kisah dari berbagai pulau Indonesia.</p><div className="class-buttons inline">{grades.map((g,i)=><button key={g} style={{'--grade-color':['#ff4f8d','#ff893a','#ffcb39','#76c94c','#279cfa','#a75bf3'][i]} as React.CSSProperties} className={chosenGrade===g?'selected':''} onClick={()=>levelPick(g)}>{g}</button>)}</div><div className="lesson-grid">{gradeTopics[chosenGrade].map((topic,i)=><article key={topic} className="lesson-card"><CultureArt id={islandData[i].id} label={false}/><div><small>📍 {islandData[i].name} · MISI {i+1}</small><h3>{topic}</h3><p>{islandData[i].fact}</p><button onClick={()=>startMission(i)}>Mulai Latihan <ChevronRight size={15}/></button></div></article>)}</div></main>}
+  {view==='peringkat'&&<main className="inner-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Beranda</button><span className="section-tag">🏆 PERINGKAT PETUALANG</span><h1>Perjalanan Para Juara</h1><div className="achievement-hero"><span>🏅</span><div><h2>Setiap Anak Bisa Jadi Juara!</h2><p>Perbandingan pribadi: tingkatkan XP dan selesaikan lebih banyak pulau. Data pribadi peserta lain tidak ditampilkan untuk menjaga privasi anak.</p></div></div><div className="achievement-grid"><div><b>{student?.xp||0} XP</b><small>XP milikmu</small></div><div><b>{student?.gamesPlayed||0}</b><small>Latihan selesai</small></div><div><b>{student?.completed.length||0}/7</b><small>Pulau ditaklukkan</small></div></div>{!student&&<button className="big-primary" onClick={()=>setModal(true)}>Masuk untuk Melihat Kemajuan</button>}</main>}
+  {view==='pencapaian'&&<main className="inner-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Beranda</button><span className="section-tag">⭐ KOLEKSI PENGHARGAAN</span><h1>Galeri Pencapaian</h1><p>{student?'Selamat, '+student.name+'! Lihat bintang dan lencana yang telah kamu peroleh.':'Masuk untuk menyimpan pencapaian petualanganmu.'}</p><div className="achievement-grid">{[0,1,2,3,4,5,6].map(i=><div key={i} className={!student?.completed.includes(i+1)?'locked':''}><span className="big-emoji">{student?.completed.includes(i+1)?'🌟':'🔒'}</span><b>{islandData[i].name}</b><small>{student?.completed.includes(i+1)?'Misi selesai!':'Belum dijelajahi'}</small></div>)}</div>{student?<div className="profile-buttons"><button className="big-primary" onClick={certificate}><Download size={17}/> Unduh Sertifikat PDF</button><button onClick={signout} className="outline-button"><LogOut size={16}/> Keluar Profil</button></div>:<button className="big-primary" onClick={()=>setModal(true)}>Masuk Sekarang</button>}</main>}
+  {view==='quiz'&&questions.length>0&&<main className="quiz-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke Peta</button><div className="quiz-heading"><div><span>🧭 MISI PULAU {islandData[island].name.toUpperCase()}</span><h1>{gradeTopics[chosenGrade][island]}</h1><p>Kenali budaya {islandData[island].name}, selesaikan soal, kumpulkan bintang!</p></div><div className="round-badge">⭐ {correct} benar</div></div><div className="quiz-track"><div style={{width:((questionIndex+1)/questions.length*100)+'%'}}/></div>
+   <div className="quiz-columns"><section className="quiz-scene"><CultureArt id={islandData[island].id}/><h2>🌺 Tahukah Kamu?</h2><p>{islandData[island].fact}</p><div className="info-tip">🎓 Selesaikan {questions.length} soal untuk mendapat hadiah XP dan bintang.</div></section><section className="quiz-paper"><div className="quiz-top"><span>SOAL {questionIndex+1} DARI {questions.length}</span><span>{chosenGrade}</span></div><h2>{questions[questionIndex].question}</h2>
+   {questions[questionIndex].imageUrl&&/^https:\/\//.test(questions[questionIndex].imageUrl!)&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
+   {questions[questionIndex].videoUrl&&videoId(questions[questionIndex].videoUrl!)&&<iframe className="extra-media video" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[questionIndex].videoUrl!)} title="Video pelajaran" allowFullScreen/>}
+   {questions[questionIndex].audioUrl&&/^https:\/\//.test(questions[questionIndex].audioUrl!)&&<audio controls src={questions[questionIndex].audioUrl}/>}
+   <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
+   {answer&&<div className="quiz-explanation"><b>{answer===questions[questionIndex].answer?'🎉 Hebat, jawabanmu benar!':'💡 Ayo pahami pembahasannya!'}</b><p>{questions[questionIndex].explanation}</p></div>}
+   <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('')}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
+  </main>}
+  {view==='result'&&<main className="inner-page result-page"><div className="result-cup">🏆</div><span className="section-tag">MISI SUKSES!</span><h1>Hebat, {student?.name.split(' ')[0]}!</h1><p>Kamu menyelesaikan petualangan di Pulau {islandData[island].name}.</p><div className="result-number">{correct} <small>dari {questions.length} soal benar</small></div><div className="result-stars">🌟 +{awardedXP} XP diperoleh</div><p>{islandData[island].fact}</p><div className="profile-buttons"><button className="big-primary" onClick={()=>navigate('home')}>🗺️ Kembali ke Peta</button><button className="outline-button" onClick={()=>startMission(island)}><RefreshCw size={16}/> Ulangi Misi</button><button className="outline-button" onClick={certificate}><Download size={16}/> Sertifikat</button></div></main>}
+  {view==='admin'&&<main className="inner-page admin-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke beranda</button><span className="section-tag"><ShieldCheck size={17}/> KHUSUS ADMIN & GURU</span><h1>Dashboard Guru</h1><p>Kelola bank soal, pemantauan siswa, dan identitas sekolah.</p>
+   {!admin?<div className="admin-login"><div className="login-mascot">🔐</div><h2>Masuk sebagai Administrator</h2><p>Akses ini membutuhkan kata sandi yang disimpan aman di Vercel, berbeda dari login siswa.</p><label>Kata Sandi Admin<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Kata sandi administrator" autoComplete="current-password" onKeyDown={e=>e.key==='Enter'&&loginAdmin()}/></label><button disabled={busy} className="big-primary" onClick={loginAdmin}>Masuk Dashboard</button></div>:
+   <div className="admin-section"><div className="admin-bar"><b>🟢 Administrator terhubung</b><button onClick={logoutAdmin}><LogOut size={16}/> Keluar admin</button></div><div className="achievement-grid admin-stats"><div><b>{students.filter(s=>grades.includes(s.grade)).length}</b><small>Siswa SD terpantau</small></div><div><b>{bank.length}</b><small>Butir soal</small></div><div><b>{students.reduce((a,s)=>a+s.xp,0)}</b><small>Total XP</small></div></div>
+    <section className="admin-box"><div className="admin-title"><div><h2>📊 Pemantauan Siswa</h2><p>Data diperbarui setiap 8 detik.</p></div><div className="row-buttons"><button onClick={loadAdmin}><RefreshCw size={15}/> Segarkan</button><button onClick={excel}><Download size={15}/> Excel</button><button onClick={pdf}><Download size={15}/> PDF</button></div></div><div className="row-buttons"><select value={filter} onChange={e=>setFilter(e.target.value)}><option>Semua</option>{grades.map(g=><option key={g}>{g}</option>)}</select><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Cari siswa…"/></div><div className="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>XP</th><th>Pulau</th><th>Kuis</th><th>Aktivitas</th></tr></thead><tbody>{visible.length?visible.map(s=><tr key={s.id}><td><b>{s.name}</b></td><td>{s.grade}</td><td>{s.xp}</td><td>{s.completed.length}/7</td><td>{s.gamesPlayed}</td><td>{s.updatedAt?new Date(s.updatedAt).toLocaleString('id-ID'):'—'}</td></tr>):<tr><td colSpan={6}>Belum ada aktivitas siswa yang tercatat.</td></tr>}</tbody></table></div></section>
+    <section className="admin-box"><div className="admin-title"><div><h2>✨ Generator Soal AI SD</h2><p>Buat soal kelas 1–6 dengan latar budaya Nusantara. Memerlukan OLLAMA_API_KEY.</p></div></div><div className="admin-input-row"><select value={aiGrade} onChange={e=>setAiGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select><select value={aiRegion} onChange={e=>setAiRegion(e.target.value)}>{islandData.map(i=><option key={i.id}>{i.name}</option>)}</select><input value={aiTopic} onChange={e=>setAiTopic(e.target.value)} placeholder="Topik, misalnya Pecahan"/><button className="big-primary" disabled={aiBusy} onClick={generateAI}><WandSparkles size={16}/>{aiBusy?'Memproses…':'Generate Soal'}</button></div></section>
+    <section className="admin-box"><div className="admin-title"><div><h2>📚 Bank Soal ({bank.length})</h2><p>Soal berdasarkan kelas dan topik akan tampil di kuis siswa.</p></div><button className="outline-button" onClick={()=>setAdding(!adding)}><Plus size={15}/> Tambah Manual</button></div>
+    {adding&&<div className="editor-form"><select value={draft.grade||'Kelas 1'} onChange={e=>setDraft({...draft,grade:e.target.value})}>{grades.map(g=><option key={g}>{g}</option>)}</select><select value={draft.topic||''} onChange={e=>setDraft({...draft,topic:e.target.value})}><option value="">Topik umum</option>{gradeTopics[draft.grade||'Kelas 1'].map(t=><option key={t}>{t}</option>)}</select><textarea value={draft.question} onChange={e=>setDraft({...draft,question:e.target.value})} placeholder="Tulis soal cerita matematika SD…"/>{draft.options.map((x,i)=><input key={i} value={x} onChange={e=>setDraft({...draft,options:draft.options.map((v,j)=>j===i?e.target.value:v)})} placeholder={'Pilihan '+String.fromCharCode(65+i)}/>)}<select value={draft.answer} onChange={e=>setDraft({...draft,answer:e.target.value})}><option value="">Pilih jawaban benar</option>{draft.options.filter(Boolean).map((x,i)=><option key={i} value={x}>{x}</option>)}</select><textarea value={draft.explanation} onChange={e=>setDraft({...draft,explanation:e.target.value})} placeholder="Pembahasan langkah demi langkah"/><input value={draft.imageUrl||''} onChange={e=>setDraft({...draft,imageUrl:e.target.value})} placeholder="URL gambar HTTPS (opsional)"/><input value={draft.videoUrl||''} onChange={e=>setDraft({...draft,videoUrl:e.target.value})} placeholder="URL video YouTube (opsional)"/><input value={draft.audioUrl||''} onChange={e=>setDraft({...draft,audioUrl:e.target.value})} placeholder="URL audio HTTPS (opsional)"/><button className="big-primary" disabled={busy||!draft.question||!draft.answer||!draft.explanation||draft.options.some(x=>!x)} onClick={()=>saveBank([...bank,{...draft}])}>Simpan Soal</button></div>}
+    <div className="bank-items">{bank.slice(-30).reverse().map((q,i)=><div className="bank-row" key={i}><span>{q.grade} · {q.topic||'Umum'}</span><b>{q.question}</b><button onClick={()=>saveBank(bank.filter(x=>x!==q))}>Hapus</button></div>)}{bank.length===0&&<p>Belum ada soal tambahan. Soal bawaan otomatis tersedia untuk setiap pulau dan kelas.</p>}</div></section>
+    <section className="admin-box"><div className="admin-title"><div><h2>🏫 Identitas Sekolah</h2><p>Sesuaikan nama dan URL logo sekolah.</p></div></div><div className="admin-input-row"><input value={school.name} onChange={e=>setSchool({...school,name:e.target.value})} placeholder="Nama sekolah"/><input value={school.logoUrl||''} onChange={e=>setSchool({...school,logoUrl:e.target.value})} placeholder="URL logo sekolah (HTTPS)"/><button className="big-primary" onClick={saveSchool}><Settings size={15}/> Simpan</button></div></section>
+   </div>}
+  </main>}
+  <footer className="site-footer"><span>⛵ {school.name}</span><div><span>Matematika SD Kelas 1–6 • Jelajah Budaya Indonesia</span><button onClick={()=>{navigate('admin');api('admin/session').then(r=>setAdmin(Boolean(r.user))).catch(()=>{})}}><ShieldCheck size={13}/> Admin</button></div></footer>
+  {modal&&<div className="modal-underlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(false)}}><section className="login-modal" role="dialog" aria-modal="true" aria-label="Masuk sebagai siswa"><button className="modal-close" onClick={()=>setModal(false)} aria-label="Tutup"><X size={19}/></button><div className="login-mascot">🧒🏽 🗺️</div><h2>Halo, Petualang Hebat!</h2><p>Isi nama dan kelasmu untuk mulai berlayar. Tanpa PIN, ya!</p><label>Nama Lengkap Siswa<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} placeholder="Tulis nama kamu…"/></label><label>Kelas SD<select value={chosenGrade} onChange={e=>setChosenGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select></label><button className="big-primary full" disabled={busy} onClick={enroll}><Ship size={18}/>{busy?'Menyimpan…':'Mulai Petualangan!'}</button><small>Data belajar tersimpan di penyimpanan privat. Jangan gunakan nama lengkap jika perangkat dipakai bersama.</small></section></div>}
+ </div>;
 }
