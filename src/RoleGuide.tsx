@@ -108,7 +108,7 @@ export default function RoleGuide({role,signedIn}:{role:GuideRole;signedIn:boole
  return <div className="nma-role-guide">
   {!open?<button type="button" className="nma-guide-fab" onClick={show} aria-label={'Buka panduan interaktif '+roleLabel[role]}><HelpCircle size={21}/><span>❔ Panduan</span></button>:
   <section ref={dialogRef} className="nma-guide-card" role="dialog" aria-modal="false" aria-label={'Panduan interaktif '+roleLabel[role]}>
-   <header className="nma-guide-heading"><div><small>PANDUAN {roleLabel[role].toUpperCase()}</small><strong>Mudah dalam 4 langkah</strong></div><button type="button" aria-label="Tutup panduan" className="nma-guide-close" onClick={close}><X size={19}/></button></header>
+   <header className="nma-guide-heading"><div><small>PANDUAN {roleLabel[role].toUpperCase()}</small><strong>Mudah dalam {steps.length} langkah</strong></div><button type="button" aria-label="Tutup panduan" className="nma-guide-close" onClick={close}><X size={19}/></button></header>
    <div className="nma-guide-scene" aria-hidden="true"><span className="nma-guide-emoji" key={role+'-'+stepIndex}>{step.icon}</span><span className="nma-guide-decoration">✨</span></div>
    <div className="nma-guide-progress" aria-label={'Langkah '+(stepIndex+1)+' dari '+steps.length}>{steps.map((s,i)=><span key={i} className={i<=stepIndex?'active':''}/>)}</div>
    <div className="nma-guide-copy" aria-live="polite"><small>LANGKAH {stepIndex+1} / {steps.length}</small><h2>{step.title}</h2><p>{step.description}</p></div>
