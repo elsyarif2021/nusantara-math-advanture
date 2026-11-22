@@ -1,0 +1,48 @@
+/* Lightweight in-app tour: one floating entry, no clutter or mandatory onboarding */
+.nma-role-guide{position:fixed;z-index:250;right:max(14px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));pointer-events:none;font-family:'Nunito',system-ui,sans-serif}
+.nma-role-guide button{font:inherit;cursor:pointer}
+.nma-guide-fab,.nma-guide-card{pointer-events:auto}
+.nma-guide-fab{display:flex;align-items:center;gap:8px;background:#194f85;color:#fff;border:2px solid #d5f5ff;box-shadow:0 4px 0 #0c3767,0 10px 24px #11386644;border-radius:999px;font-size:13px!important;font-weight:900!important;padding:11px 16px;white-space:nowrap}
+.nma-guide-fab:hover,.nma-guide-fab:focus-visible{background:#246fa9;transform:translateY(-1px)}
+.nma-guide-card{width:min(360px,calc(100vw - 24px));max-height:min(670px,calc(100dvh - 30px));display:flex;flex-direction:column;overflow-y:auto;background:#fffdfa;border:3px solid #a8dff3;border-radius:23px;box-shadow:0 15px 50px #0b376a4a;color:#234361;animation:nma-guide-enter .24s ease-out}
+.nma-guide-heading{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#e6f8ff;padding:13px 16px;border-bottom:1px solid #c2e6ed}
+.nma-guide-heading>div{display:grid;gap:2px}.nma-guide-heading small{font-size:10px;color:#4a82a5;font-weight:900;letter-spacing:.7px}
+.nma-guide-heading strong{font-size:16px;color:#1a4b78;font-weight:900}
+.nma-guide-close{display:grid;place-items:center;width:34px;height:34px;border:1px solid #b9d6df;border-radius:50%;background:#fff;color:#1d4c7b;flex-shrink:0}
+.nma-guide-scene{height:92px;display:grid;place-items:center;position:relative;flex-shrink:0;background:radial-gradient(ellipse at 50% 40%,#f7ffe4,#e4f9fc 60%,#fffdfa)}
+.nma-guide-emoji{display:block;font-size:53px;line-height:1;filter:drop-shadow(0 5px 4px #163f6540);animation:nma-guide-float 2s ease-in-out infinite}
+.nma-guide-decoration{position:absolute;top:12px;right:29%;font-size:21px;animation:nma-guide-glow 2s infinite}
+.nma-guide-progress{display:flex;justify-content:center;gap:7px;padding:7px 12px 0}
+.nma-guide-progress span{height:6px;width:23px;background:#d9e7ef;border-radius:99px;transition:background .2s,transform .2s}
+.nma-guide-progress span.active{background:#3bb698;transform:scaleX(1.07)}
+.nma-guide-copy{padding:10px 20px 6px;text-align:center;flex:1}
+.nma-guide-copy>small{color:#418f99;font-size:10px;font-weight:900;letter-spacing:1px}
+.nma-guide-copy h2{margin:5px 0 7px;font-family:'Baloo 2','Nunito',sans-serif;font-size:23px;line-height:1.2;font-weight:800;color:#1e4f7f}
+.nma-guide-copy p{font-size:13px;line-height:1.65;margin:0;color:#4d6d86}
+.nma-guide-voice{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:10px 12px}
+.nma-guide-voice button{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 10px;font-size:11px;font-weight:900;border:1px solid #c0dfe9;background:#effbff;color:#285c80;border-radius:9px}
+.nma-guide-voice button:hover{background:#dff7ff}
+.nma-guide-voice .nma-guide-jump{background:#fff2d0;border-color:#f3d99e;color:#90602b}
+.nma-guide-voice button:disabled{cursor:not-allowed;opacity:.6}
+.nma-guide-footer{display:flex;justify-content:space-between;gap:10px;padding:12px;border-top:1px solid #e0e9f0;background:#f9fcff}
+.nma-guide-footer button{display:flex;justify-content:center;align-items:center;gap:5px;font-size:12px;font-weight:900;border-radius:10px;padding:11px 14px;min-width:108px}
+.nma-guide-prev{border:1px solid #bdd6e8;background:#fff;color:#255a82}
+.nma-guide-next{border:1px solid #237a7c;color:#fff;background:#208d8c}
+.nma-guide-footer button:disabled{opacity:.5;cursor:not-allowed}
+.nma-guide-spotlight{outline:4px solid #ffba42!important;outline-offset:4px;animation:nma-guide-highlight 1.7s ease-in-out infinite;scroll-margin:80px 0 340px}
+@keyframes nma-guide-enter{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes nma-guide-float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+@keyframes nma-guide-glow{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.22)}}
+@keyframes nma-guide-highlight{0%,100%{outline-color:#ffbd48}50%{outline-color:#f97e4f}}
+@media(max-width:600px){
+ .nma-role-guide{right:10px;bottom:max(11px,env(safe-area-inset-bottom))}
+ .nma-guide-fab{padding:9px 13px;font-size:12px!important}
+ .nma-guide-card{max-height:calc(100dvh - 20px);width:min(345px,calc(100vw - 20px))}
+ .nma-guide-scene{height:70px}.nma-guide-emoji{font-size:45px}
+ .nma-guide-copy h2{font-size:20px}.nma-guide-copy p{font-size:12px}
+ .nma-guide-heading{padding:10px 13px}.nma-guide-footer{padding:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ .nma-guide-card,.nma-guide-emoji,.nma-guide-decoration,.nma-guide-spotlight{animation:none!important}
+ .nma-guide-progress span{transition:none}
+}
