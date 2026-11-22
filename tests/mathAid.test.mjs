@@ -25,6 +25,6 @@ test('guide is optional and does not reveal question answer before submission',(
  assert.match(helper,/Pilih caranya/);
  assert.match(helper,/Hitung perlahan/);
  assert.match(helper,/Periksa kembali/);
- assert.match(helper,/Alat Bantu Matematika/);
+ assert.match(helper,/Buka Kalkulator & Panduan/);
  assert.doesNotMatch(helper,/question\.answer/);
 });
