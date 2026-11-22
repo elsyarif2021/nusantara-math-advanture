@@ -107,12 +107,7 @@
 .home-extra-culture{padding-bottom:0}
 .home-extra-culture .culture-section{margin:8px 12px}
 .home-extra-culture .after-story{margin:12px}
-.nav-more{position:relative;flex-shrink:0}
 .topnav-simple{overflow:visible;scrollbar-width:auto}
-.topnav-simple .nav-more-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:85;display:flex;flex-direction:column;gap:3px;min-width:230px;padding:8px;border:1px solid #c6e1ed;border-radius:14px;background:#fff;box-shadow:0 15px 28px #12325a29}
-.topnav-simple .nav-more-menu button{width:100%;justify-content:flex-start;border-radius:9px;padding:11px 12px;color:#285f89;background:#fff;font-weight:800;font-size:12px}
-.topnav-simple .nav-more-menu button:hover{background:#e9f5ff;color:#204c8c;box-shadow:none}
-.nav-more-divider{height:1px;background:#e4edf0;margin:4px}
 @media(max-width:820px){.role-nav{gap:3px;padding:5px}.role-nav button{font-size:11px;gap:4px;padding:10px 4px}.role-nav button svg{width:15px;height:15px}.admin-quick-actions{grid-template-columns:1fr}.admin-overview{padding:16px}.topnav-simple{width:100%;justify-content:space-between}.topnav-simple>button,.topnav-simple>.nav-more{flex:1}.topnav-simple>.nav-more>button{justify-content:center;width:100%}}
 @media(max-width:520px){.admin-role-nav{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:6px}.role-nav button{flex-direction:column;font-size:10px;padding:9px 3px;line-height:1.15}.role-nav button svg{width:18px;height:18px}.topnav-simple button{gap:3px;font-size:10px;padding:9px 3px}.topnav-simple .nav-more-menu button{flex-direction:row;font-size:12px;gap:9px;justify-content:flex-start}.admin-overview h2{font-size:22px}.admin-overview .achievement-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
@@ -141,3 +136,11 @@
 .role-entry-list b{font-size:13px;font-weight:900}
 .role-entry-list small{color:#7794aa;font-size:11px;line-height:1.35}
 @media(max-width:540px){.role-entry-trigger{gap:5px;padding:8px 10px;font-size:11px}.role-entry-trigger svg{width:15px;height:15px}.role-entry-list{right:0}.topbar .top-actions{margin-left:auto}}
+
+/* Student audio settings live in their achievement screen, not a redundant header menu */
+.student-audio-settings{max-width:540px;margin:22px 0 18px;background:#f8fcff;border:1px solid #cfe7f3;border-radius:15px}
+.student-audio-settings>summary{display:flex;align-items:center;gap:9px;cursor:pointer;padding:14px 17px;color:#315f89;font-weight:900;font-size:13px}
+.student-audio-settings[open]>summary{border-bottom:1px solid #dbeaf1}
+.student-audio-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:13px 16px}
+.student-audio-controls button{display:flex;align-items:center;gap:8px;justify-content:center}
+@media(max-width:540px){.student-audio-controls{flex-direction:column;align-items:stretch}.student-audio-controls button{width:100%}}
