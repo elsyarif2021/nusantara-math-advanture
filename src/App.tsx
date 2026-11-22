@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
 import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star, Trophy,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift} from 'lucide-react';
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
+import {quizSound} from './sounds';
 import {gradeTopics,grades,islandData,makeMission,topicChips,type Question,type Student,type SchoolConfig} from './learning';
 type View='home'|'materi'|'peringkat'|'pencapaian'|'quiz'|'result'|'admin';
 const api=async(path:string,options:RequestInit={})=>{
@@ -49,7 +50,7 @@ export default function App(){
  try{const r=await api('public/questions?grade='+encodeURIComponent(s.grade));const topic=gradeTopics[s.grade][i];
   const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>!q.topic||q.topic===topic);
   const generated=makeMission(s.grade,i,8);const qs=[...fromBank.slice(0,3).map(q=>({...q,cultureId:islandData[i].id})),...generated].slice(0,8);
-  setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+islandData[i].fact);
+  setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+islandData[i].fact+' Pertanyaan pertama. '+qs[0].question);
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function finish(){if(!student)return;const wasDone=student.completed.includes(island+1),earned=correct*25+(wasDone?0:50)+(daily?0:20),completed=[...new Set([...student.completed,island+1])];
  const p:Student={...student,completed,xp:student.xp+earned,gamesPlayed:student.gamesPlayed+1,recent:[...student.recent,{region:islandData[island].name,score:correct,total:questions.length,date:new Date().toISOString()}].slice(-25)};
@@ -70,7 +71,7 @@ export default function App(){
  async function certificate(){if(!student)return;const {jsPDF}=await import('jspdf');const d=new jsPDF({orientation:'landscape'});d.setFillColor(25,107,170);d.rect(0,0,297,210,'F');d.setDrawColor(255,207,89);d.setLineWidth(3);d.rect(12,12,273,186);d.setTextColor(255,235,156);d.setFontSize(34);d.text('SERTIFIKAT PETUALANGAN',148,57,{align:'center'});d.setTextColor(255,255,255);d.setFontSize(24);d.text(student.name,148,94,{align:'center'});d.setFontSize(15);d.text(student.grade+'  •  '+student.completed.length+' pulau  •  '+student.xp+' XP',148,123,{align:'center'});d.text('NUSANTARA MATH ADVENTURE SD',148,174,{align:'center'});d.save('sertifikat-'+student.name.replace(/[^a-zA-Z0-9]/g,'-')+'.pdf')}
  const visible=students.filter(s=>grades.includes(s.grade)&&(filter==='Semua'||s.grade===filter)&&s.name.toLowerCase().includes(query.toLowerCase()));
  return <div className="app-shell">
-  <audio ref={audioRef} src="https://nusantara-math-adventure.abumumtaz.chatgpt.site/resources/heart-of-nusantara.mp3" loop preload="none"/>
+  <audio ref={audioRef} src="/resources/nusantara-ceria.wav" loop preload="none"/>
   <header className="topbar">
    <button className="brand" onClick={()=>navigate('home')} aria-label="Beranda Nusantara Math Adventure"><span className="wheel">🧭</span><span><b>Nusantara</b><strong>Math Adventure</strong></span></button>
    <nav className="topnav" aria-label="Menu utama">
@@ -113,9 +114,9 @@ export default function App(){
    {questions[questionIndex].imageUrl&&/^https:\/\//.test(questions[questionIndex].imageUrl!)&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
    {questions[questionIndex].videoUrl&&videoId(questions[questionIndex].videoUrl!)&&<iframe className="extra-media video" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[questionIndex].videoUrl!)} title="Video pelajaran" allowFullScreen/>}
    {questions[questionIndex].audioUrl&&/^https:\/\//.test(questions[questionIndex].audioUrl!)&&<audio controls src={questions[questionIndex].audioUrl}/>}
-   <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
+   <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);quizSound(option===questions[questionIndex].answer);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
    {answer&&<div className="quiz-explanation"><b>{answer===questions[questionIndex].answer?'🎉 Hebat, jawabanmu benar!':'💡 Ayo pahami pembahasannya!'}</b><p>{questions[questionIndex].explanation}</p></div>}
-   <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('')}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
+   <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('');say('Pertanyaan berikutnya. '+questions[questionIndex+1].question)}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
   </main>}
   {view==='result'&&<main className="inner-page result-page"><div className="result-cup">🏆</div><span className="section-tag">MISI SUKSES!</span><h1>Hebat, {student?.name.split(' ')[0]}!</h1><p>Kamu menyelesaikan petualangan di Pulau {islandData[island].name}.</p><div className="result-number">{correct} <small>dari {questions.length} soal benar</small></div><div className="result-stars">🌟 +{awardedXP} XP diperoleh</div><p>{islandData[island].fact}</p><div className="profile-buttons"><button className="big-primary" onClick={()=>navigate('home')}>🗺️ Kembali ke Peta</button><button className="outline-button" onClick={()=>startMission(island)}><RefreshCw size={16}/> Ulangi Misi</button><button className="outline-button" onClick={certificate}><Download size={16}/> Sertifikat</button></div></main>}
   {view==='admin'&&<main className="inner-page admin-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke beranda</button><span className="section-tag"><ShieldCheck size={17}/> KHUSUS ADMIN & GURU</span><h1>Dashboard Guru</h1><p>Kelola bank soal, pemantauan siswa, dan identitas sekolah.</p>
