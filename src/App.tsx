@@ -196,16 +196,20 @@ export default function App(){
     <details className="home-extra home-extra-topics"><summary>📚 Lihat topik belajar</summary>
     <section className="topic-strip" aria-label="Topik Matematika SD">{topicChips.map(([emoji,label])=><button key={label} onClick={()=>navigate('materi')}><span>{emoji}</span>{label}</button>)}</section>
     </details>
-    <div className="game-layout">
-     <aside className="player-card">
+    <div className="game-layout game-layout-map-first">
+     <section className="map-card map-card-wide" ref={mapRef} id="peta">
+      <div className="map-heading"><h2>🧭 Pilih Pulau di Peta</h2><small>Sentuh pin pulau untuk mengerjakan soal Matematika</small></div>
+      <div className="map-pan-hint" aria-hidden="true">↔ Geser peta ke kanan dan kiri untuk melihat semua pulau</div>
+      <div className="map-scroll-area" role="region" aria-label="Peta interaktif Nusantara; geser ke samping untuk melihat semua pulau" tabIndex={0}>
+       <IndonesiaMap completed={student?.completed||[]} onSelect={startMission}/>
+      </div>
+      <div className="map-foot"><span>⛵ Pilih salah satu pin pulau untuk bermain</span><span>7 Pulau • 7 Budaya • 7 Misi</span></div>
+     </section>
+     <aside className="player-card player-card-compact" aria-label="Ringkasan perjalanan siswa">
       <div className="player-name"><div className="avatar">👧🏽</div><div><small>Halo, Petualang! 👋</small><b>{student?.name||'Sahabat Nusantara'}</b><span>{student?'SD '+student.grade:'Pilih kelas saat login'}</span></div></div>
       <div className="level-card"><div className="level-label"><span>🌟</span><div><b>Level {student?Math.floor(student.xp/250)+1:1}</b><small>{rank}</small></div></div><div className="progress-rail"><div style={{width:((student?.xp||0)%250)/250*100+'%'}}/></div><small>{student?.xp||0} XP • Menuju level berikutnya</small></div>
       <div className="stats"><div><span>⭐ Bintang</span><b>{student?Math.floor(student.xp/25):0}</b></div><div><span>🏅 Lencana</span><b>{student?.completed.length||0}</b></div><div><span>🚩 Misi Selesai</span><b>{student?.completed.length||0} / 7</b></div></div>
-      
-      
      </aside>
-     <section className="map-card" ref={mapRef} id="peta"><div className="map-heading"><h2>🧭 Pilih Pulau di Peta</h2><small>Sentuh satu pulau untuk mengerjakan soal Matematika</small></div><IndonesiaMap completed={student?.completed||[]} onSelect={startMission}/><div className="map-foot"><span>⛵ Kapalmu siap berlayar!</span><span>7 Pulau • 7 Budaya • 7 Misi</span></div></section>
-
     </div>
     <details className="home-extra home-extra-culture"><summary>🌺 Cerita & budaya Nusantara (opsional)</summary>
     <section className="culture-section"><div className="wood-label">🌺 Kenali Budaya Nusantara di Setiap Misi!</div><div className="culture-cards">{islandData.map((item,i)=><article className="culture-tile" key={item.id}><CultureArt id={item.id} label={false}/><strong>{item.name}</strong><span>{item.culture}</span></article>)}</div></section>
