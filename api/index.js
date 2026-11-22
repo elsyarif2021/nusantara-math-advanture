@@ -4,7 +4,7 @@ import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
-const adminReady=()=>Boolean(process.env.ADMIN_PASSWORD?.length>=12&&process.env.SESSION_SECRET?.length>=32);
+const adminReady=()=>Boolean(process.env.ADMIN_PASSWORD?.length>=8&&process.env.SESSION_SECRET?.length>=32);
 const safeEqual=(a,b)=>{const x=crypto.createHash('sha256').update(String(a)).digest(),y=crypto.createHash('sha256').update(String(b)).digest();return crypto.timingSafeEqual(x,y)};
 const sign=part=>crypto.createHmac('sha256',process.env.SESSION_SECRET).update(part).digest('hex');
 const cookies=req=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')).filter(x=>x.length>=2));
