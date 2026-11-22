@@ -35,7 +35,7 @@ async function links({read,list}){
 async function students({read,list}){
  return readMany(read,await gather(list,'students/',MAX_STUDENTS));
 }
-async function resolveTeacher(req,{read}){
+export async function resolveTeacher(req,{read}){
  const secret=process.env.SESSION_SECRET;
  const session=verifyTeacherSession(cookieOf(req).nma_teacher,secret);
  if(!session)return null;
