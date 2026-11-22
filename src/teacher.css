@@ -162,3 +162,58 @@
 .question-extra-media[open]>summary{border-bottom:1px solid #dcebf0}
 .question-extra-media>.teacher-question-form-grid,.question-extra-media>.question-fields{padding:13px 15px}
 .question-extra-media input[type=url]{min-width:0}
+
+
+/* Wider Nusantara map: it is the primary activity, not a narrow sidebar. */
+.main-width .game-layout-map-first{
+ display:flex;flex-direction:column;align-items:stretch;
+ gap:14px;max-width:1650px;margin:16px auto 0;
+}
+.game-layout-map-first>.map-card-wide{
+ order:0;width:100%;min-width:0;overflow:hidden;
+}
+.map-card-wide .map-heading{padding:12px 18px;gap:12px}
+.map-card-wide .map-heading h2{font-size:clamp(18px,2vw,25px)}
+.map-scroll-area{
+ display:block;width:100%;max-width:100%;min-width:0;
+ overflow-x:auto;overflow-y:hidden;
+ overscroll-behavior-x:contain;
+ -webkit-overflow-scrolling:touch;scrollbar-width:thin;
+ scrollbar-color:#65b8d5 #d2f0f8;
+ touch-action:pan-x pan-y;
+}
+.map-scroll-area:focus-visible{outline:3px solid #ffce49;outline-offset:-4px}
+.map-scroll-area .islands-svg{
+ display:block;width:100%;height:auto;min-height:0;
+ aspect-ratio:1000 / 480;max-width:none;flex:none;
+}
+.map-pan-hint{display:none;background:#e7f8ff;color:#266886;font-weight:900;font-size:12px;text-align:center;padding:8px 10px}
+.game-layout-map-first>.player-card-compact{
+ order:1;width:100%;min-width:0;max-width:none;align-self:auto;
+ display:grid;grid-template-columns:minmax(210px,1fr) minmax(230px,1fr) minmax(300px,1.25fr);
+ gap:15px;align-items:center;padding:12px 16px;
+}
+.player-card-compact .level-card{margin:0}
+.player-card-compact .stats{grid-template-columns:1fr;gap:4px}
+.player-card-compact .stats>div{padding:5px 10px}
+@media(max-width:900px){
+ .game-layout-map-first>.player-card-compact{grid-template-columns:1fr 1fr}
+ .player-card-compact .stats{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .player-card-compact .stats>div{flex-direction:column;align-items:center;gap:3px;text-align:center}
+}
+@media(max-width:750px){
+ .main-width .game-layout-map-first{gap:11px;margin:12px auto 0}
+ .map-card-wide .map-heading{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px}
+ .map-card-wide .map-heading small{font-size:11px}
+ .map-pan-hint{display:block}
+ .map-scroll-area .islands-svg{width:900px;min-width:900px;max-width:none;height:432px;aspect-ratio:1000 / 480}
+ .game-layout-map-first>.player-card-compact{grid-template-columns:1fr;gap:9px;padding:12px}
+ .player-card-compact .stats{grid-column:auto;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+ .player-card-compact .stats>div{padding:8px 4px;font-size:10px}
+ .player-card-compact .stats b{font-size:15px}
+ .map-card-wide .map-foot{flex-wrap:wrap;font-size:10px;gap:3px;padding:9px 11px}
+}
+@media(max-width:420px){
+ .map-scroll-area .islands-svg{width:850px;min-width:850px;height:408px}
+ .map-pan-hint{font-size:11px}
+}
