@@ -67,6 +67,27 @@ test('teacher CRUD is scoped to their identity and to their own class links',asy
  assert.equal(mixedA.length,0);assert.equal(mixedB.length,1);
  assert.equal(mixedB[0].cultureId,'jawa');
 });
+test('Super Admin retains full control over teacher-owned questions, teacher cannot use admin endpoints',async()=>{
+ const {req}=fixture();
+ const created=await req('admin/teachers','POST',{name:'Ibu Citra',username:'citra',password:'Password123'},'',true);
+ const teacherId=created.body.teacher.id;
+ const login=await req('teacher/login','POST',{username:'citra',password:'Password123'});
+ const cookie=login.headers['Set-Cookie'].split(';')[0];
+ await req('teacher/links','POST',{label:'Kelas Dua',grade:'Kelas 2'},cookie);
+ assert.equal((await req('admin/teacher-questions','GET',{},cookie,false,{teacherId})).status,401);
+ const posted=await req('admin/teacher-questions','POST',{teacherId,question:payload('Kelas 2')},'',true);
+ assert.equal(posted.status,201);
+ const questionId=posted.body.question.id;
+ assert.equal((await req('teacher/questions','GET',{},cookie)).body.questions.length,1);
+ const list=await req('admin/teacher-questions','GET',{},'',true,{teacherId});
+ assert.equal(list.status,200);assert.equal(list.body.questions.length,1);
+ assert.equal((await req('admin/teacher-questions/'+teacherId+'/'+questionId,'DELETE',{},cookie)).status,401);
+ const changed=await req('admin/teacher-questions/'+teacherId+'/'+questionId,'PUT',{question:{...payload('Kelas 2'),active:false}},'',true);
+ assert.equal(changed.status,200);assert.equal(changed.body.question.active,false);
+ assert.equal((await req('teacher/questions','GET',{},cookie)).body.questions[0].active,false);
+ assert.equal((await req('admin/teacher-questions/'+teacherId+'/'+questionId,'DELETE',{},'',true)).status,200);
+ assert.equal((await req('teacher/questions','GET',{},cookie)).body.questions.length,0);
+});
 test('published selection favors own teacher content, hides inactive and other grades',()=>{
  const global=[{...payload('Kelas 1'),id:'global'}, {...payload('Kelas 2'),id:'global2'}];
  const own=[{...payload('Kelas 1'),id:'myone'}, {...payload('Kelas 1'),active:false,id:'hidden'}];
