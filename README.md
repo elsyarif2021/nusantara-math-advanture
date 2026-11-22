@@ -94,3 +94,38 @@ Endpoint utama:
 - `GET /api/public/mission-config?grade=Kelas%201&culture=sumatra`
 
 **Penting:** sesi admin membutuhkan `ADMIN_PASSWORD` dan `SESSION_SECRET` pada Environment Variables Vercel, bukan pada frontend atau GitHub. Tanpa keduanya, login ditolak dan fitur CRUD tidak tersedia.
+
+
+## 🔐 Role-Based Access Control: Super Admin, Guru, dan Siswa
+
+Aplikasi memakai **tiga peran dengan autentikasi dan ruang data terpisah**:
+
+| Peran | Alamat | Hak akses |
+|---|---|---|
+| **Super Admin** | `/admin` | Pengelolaan seluruh guru, aktivasi/nonaktivasi, reset kata sandi guru, pemantauan semua siswa, bank soal global, pengaturan sekolah dan AI |
+| **Guru** | `/guru` | Login akun guru yang dibuat Super Admin, buat/tutup tautan kelas, pantau **hanya** siswa yang mendaftar lewat tautan milik guru, ekspor data kelas sendiri, ganti kata sandi pribadi |
+| **Siswa** | `/gabung/<token>` | Login nama dan kelas dari tautan Guru tanpa PIN, mengikuti kuis, progres siswa tercatat pada Guru pemilik tautan |
+
+### Langkah penggunaan
+
+1. Konfigurasikan `ADMIN_PASSWORD` (minimal 8 karakter) dan `SESSION_SECRET` (minimal 32 karakter acak) di **Environment Variables → Production**, lalu redeploy. **Jangan simpan di GitHub/chat**.
+2. Super Admin login di `/admin`, buka **Kelola Akun Guru & Kelas**, lalu isi nama, username unik, dan kata sandi awal guru (minimal 8 karakter). Super Admin juga dapat menonaktifkan guru dan mereset kata sandi guru.
+3. Guru login di `/guru` menggunakan username dan kata sandi yang diterima secara privat. Guru memilih kelas SD 1–6, menuliskan nama kelompok (misal Kelas 3A), lalu klik **Buat Link Siswa**.
+4. Guru menekan **Salin Link** dan membagikannya hanya kepada siswa kelompoknya. Contoh pola `https://nusantara-math-advanture.vercel.app/gabung/<token-acak-48-karakter>`.
+5. Siswa membuka tautan, memasukkan nama, kemudian bermain. Kelas ditetapkan oleh tautan guru; siswa tidak dapat memilih kelas lain untuk kelompok itu.
+6. Guru membuka **Pemantauan Siswa Saya**, memilih kelompok untuk memfilter hanya siswa pada tautan kelas tersebut. Guru A tidak memperoleh akses ke siswa/link Guru B.
+7. Guru dapat menutup tautan agar tidak menerima siswa baru. Peserta lama tetap tercatat pada Guru pemilik sebelumnya. Super Admin dapat melihat keseluruhan data.
+
+### Penegakan keamanan di server
+
+- Guru disimpan dalam dokumen privat `teachers/<teacherId>.json` dengan kata sandi **scrypt + salt acak**.
+- Sesi Guru memakai cookie terpisah `nma_teacher`, ditandatangani HMAC dengan `SESSION_SECRET`, HttpOnly, Secure, SameSite=Strict. Mengubah kata sandi atau menonaktifkan akun mencabut sesi sebelumnya.
+- Pembuatan/pengaturan guru memerlukan cookie autentikasi **Super Admin**. Cookie Guru tidak memiliki izin akses ke endpoint tersebut.
+- Tautan siswa memakai **token acak 192-bit**. Enrollment melalui `POST /api/enroll` memeriksa status tautan dan guru, lalu **server** menetapkan `teacherId`, `inviteToken`, dan kelas.
+- Pembaruan progres siswa mempertahankan penugasan `teacherId` dan `inviteToken` yang telah disimpan; kiriman browser siswa tidak bisa mengubahnya.
+- Endpoint `GET /api/teacher/monitor` secara ketat memfilter data hanya dengan `teacherId` dari sesi Guru yang sudah diverifikasi. Permintaan filter tautan milik guru lain ditolak.
+- Hasil tanpa PIN bukan pengganti absensi/asesmen terverifikasi: tautan dapat diteruskan siswa dan nama dapat ditiru. Sebelum digunakan untuk penilaian resmi, tambahkan verifikasi siswa dan kebijakan perlindungan data anak.
+
+Endpoint role baru: `/api/admin/teachers`, `/api/teacher/login`, `/api/teacher/session`, `/api/teacher/links`, `/api/teacher/monitor`, `/api/invite/:token`, `/api/enroll`.
+
+Tes isolasi peran: `npm test` memeriksa akun guru yang terpisah, dua tautan milik guru berbeda, pembatasan daftar siswa, penolakan pengelolaan guru oleh cookie Guru, penutupan tautan, serta pencabutan sesi.
