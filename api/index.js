@@ -1,9 +1,10 @@
 import crypto from 'node:crypto';
 import {get,put,list} from '@vercel/blob';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
-import {handleTeacherRoutes} from './teacherRoutes.js';
+import {handleTeacherRoutes,resolveTeacher} from './teacherRoutes.js';
 import {tokenInviteOK,idTeacherOK} from './teacherAuth.js';
 import {readTeacherQuestions,selectPublicQuestions} from './teacherQuestions.js';
+import {parseQuestionImage,createQuestionImageLocation,imageStorageFromRoute} from './questionImages.js';
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
@@ -25,6 +26,33 @@ export default async function handler(req,res){
  if(path==='health'&&method==='GET')return send(res,200,{ok:true,storage:storeReady(),admin:adminReady(),platform:'vercel'});
  if(!storeReady())return send(res,503,{error:'Penyimpanan belum diaktifkan. Hubungkan private Vercel Blob ke proyek ini.'});
  try{
+  if(path==='question-images/upload'&&method==='POST'){
+   const requestedRole=String(req.body?.role||'');
+   let owner;
+   if(requestedRole==='superadmin'){
+    if(!isAdmin(req))return send(res,401,{error:'Masuk sebagai Super Admin untuk mengunggah gambar.'});
+    owner='superadmin';
+   }else if(requestedRole==='teacher'){
+    const teacher=await resolveTeacher(req,{read});
+    if(!teacher)return send(res,401,{error:'Masuk sebagai Guru untuk mengunggah gambar.'});
+    owner=teacher.id;
+   }else return send(res,400,{error:'Jenis akses pengunggah tidak valid.'});
+   let parsed;try{parsed=parseQuestionImage(req.body)}catch(e){return send(res,400,{error:e.message})}
+   const location=createQuestionImageLocation(owner,parsed.contentType);
+   await put(location.pathname,parsed.buffer,{access:'private',contentType:parsed.contentType,allowOverwrite:false});
+   return send(res,201,{uploaded:true,url:location.url,size:parsed.buffer.length,contentType:parsed.contentType});
+  }
+  if(path.startsWith('question-images/file/')&&method==='GET'){
+   const location=imageStorageFromRoute(path);
+   if(!location)return send(res,404,{error:'Gambar soal tidak ditemukan.'});
+   const blob=await get(location.pathname,{access:'private'});
+   if(!blob)return send(res,404,{error:'Gambar soal tidak ditemukan.'});
+   const buffer=Buffer.from(await new Response(blob.stream).arrayBuffer());
+   res.setHeader('Content-Type',location.contentType);
+   res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+   res.setHeader('X-Content-Type-Options','nosniff');
+   return res.status(200).end(buffer);
+  }
   if(await handleTeacherRoutes({path,method,req,res,send,read,write,list,isAdmin}))return;
   if(path==='admin/session'&&method==='GET')return send(res,200,{user:isAdmin(req)?{name:'Super Admin',role:'super_admin'}:null});
   if(path==='admin/login'&&method==='POST'){
