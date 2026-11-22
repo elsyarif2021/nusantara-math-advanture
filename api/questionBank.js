@@ -1,3 +1,5 @@
+import {isInternalQuestionImageUrl} from './questionImages.js';
+
 // Persistent per-question documents avoid overwriting the whole shared bank.
 // Legacy questions from config/bank.json remain readable and editable through overlay records.
 export const sdTopics={
@@ -28,6 +30,7 @@ export function normalizeQuestion(input){
   const value=String(input[field]||'').trim();
   if(value.length>500)throw Error('Alamat media terlalu panjang.');
   if(value){
+   if(field==='imageUrl'&&isInternalQuestionImageUrl(value)){result[field]=value;continue}
    let u;try{u=new URL(value)}catch{throw Error('URL '+field+' tidak valid.')}
    if(u.protocol!=='https:'||u.username||u.password)throw Error('URL media harus menggunakan HTTPS.');
    if(field==='videoUrl'&&!['youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtube-nocookie.com'].includes(u.hostname))throw Error('Video hanya mendukung tautan YouTube.');
