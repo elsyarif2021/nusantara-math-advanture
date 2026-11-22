@@ -23,6 +23,7 @@ export const gradeTopics:Record<string,string[]>={
 export const grades=Object.keys(gradeTopics);
 export const topicChips=[['🔢','Bilangan'],['➕','Penjumlahan'],['➖','Pengurangan'],['✖️','Perkalian'],['➗','Pembagian'],['½','Pecahan'],['🔺','Bangun Datar'],['📏','Pengukuran'],['📊','Data'],['🧊','Volume']];
 const r=(a:number,b:number)=>Math.floor(Math.random()*(b-a+1))+a;
+const gcd=(a:number,b:number):number=>b===0?a:gcd(b,a%b);
 const only=(v:number)=>Number.isInteger(v)?String(v):String(Math.round(v*100)/100);
 function numeric(text:string,answer:number,explanation:string):Question{
  const opts=[answer];for(const delta of [1,-1,2,-2,3,-3,5,-5,10,-10,answer>2?-Math.ceil(answer/3):7]){
@@ -60,7 +61,7 @@ export function makeCultureQuestion(grade:string,stage:number):Question{
  case 2:q=numeric('Ada '+(a+b+100)+' '+item+' di gudang. Sebanyak '+(b+30)+' diberikan. Sisanya?',a+70,(a+b+100)+' − '+(b+30)+' = '+(a+70)+'.');break;
  case 3:q=numeric('Ada '+n+' kelompok, masing-masing membawa '+k+' '+item+'. Berapa totalnya?',n*k,n+' × '+k+' = '+(n*k)+'.');break;
  case 4:q=numeric('Sebanyak '+(n*k)+' '+item+' dibagikan rata kepada '+n+' kelompok. Tiap kelompok dapat?',k,(n*k)+' ÷ '+n+' = '+k+'.');break;
- case 5:q=numeric('Harga satu cendera mata '+zone.name+' Rp'+(k*1000)+'. Kamu membeli '+n+' buah. Total harga (rupiah)?',k*n*1000,'Kalikan harga satu benda dengan jumlah pembelian.');break;
+ case 5:if(Math.random()<.5)q=numeric('Harga satu cendera mata '+zone.name+' Rp'+(k*1000)+'. Kamu membeli '+n+' buah. Total harga (rupiah)?',k*n*1000,'Kalikan harga satu benda dengan jumlah pembelian.');else q=numeric('Perjalanan menuju rumah adat sepanjang '+n+' meter. Panjangnya ... sentimeter.',n*100,'1 meter sama dengan 100 sentimeter.');break;
  default:q=numeric('Di piktogram, setiap gambar ⭐ mewakili 2 pengunjung. Ada '+n+' gambar ⭐. Berapa pengunjung?',n*2,n+' gambar × 2 = '+(n*2)+'.');
  }break;
  case 3:switch(stage){
@@ -78,26 +79,26 @@ export function makeCultureQuestion(grade:string,stage:number):Question{
  case 2:q=numeric('Ada '+n+' baris hiasan dan setiap baris berisi '+k+' benda. Kelipatan '+k+' pada urutan ke-'+n+' adalah ...',n*k,'Kelipatan ke-'+n+' dari '+k+' = '+n+'×'+k+'.');break;
  case 3:{const x=r(10,40)/10,y=r(10,30)/10;const sum=Math.round((x+y)*10)/10;q=choices('Penjual cendera mata mengukur pita '+x.toFixed(1).replace('.',',')+' m dan '+y.toFixed(1).replace('.',',')+' m. Total panjangnya ... m.',sum.toFixed(1).replace('.',','),[(sum+.1).toFixed(1).replace('.',','),(sum+1).toFixed(1).replace('.',','),(sum-.1).toFixed(1).replace('.',',')],'Jumlahkan kedua bilangan desimal.');break}
  case 4:q=numeric('Halaman rumah adat berbentuk persegi panjang, panjang '+n+' m dan lebar '+k+' m. Luasnya?',n*k,'Luas = panjang × lebar = '+n+' × '+k+'.');break;
- case 5:q=choices('Motif kain memiliki satu garis lipatan yang membagi dua bagian sama persis. Garis itu disebut ...','Sumbu simetri',['Jari-jari','Diagonal ruang','Sisi lengkung'],'Sumbu simetri membagi bentuk menjadi dua bagian yang saling menutupi.');break;
+ case 5:if(Math.random()<.5)q=choices('Motif kain memiliki satu garis lipatan yang membagi dua bagian sama persis. Garis itu disebut ...','Sumbu simetri',['Jari-jari','Diagonal ruang','Sisi lengkung'],'Sumbu simetri membagi bentuk menjadi dua bagian yang saling menutupi.');else q=numeric('Sudut siku-siku pada pintu rumah adat besarnya ... derajat.',90,'Sudut siku-siku selalu 90 derajat.');break;
  default:q=numeric('Diagram batang mencatat '+a+' pengunjung hari Senin dan '+b+' pengunjung hari Selasa. Berapa jumlahnya?',a+b,'Jumlah dua batang: '+a+'+'+b+' = '+(a+b)+'.');
  }break;
  case 5:switch(stage){
  case 0:{const val=r(100000,900000);q=numeric('Jumlah pengunjung museum di Nusantara '+val+'. Bilangan ini bernilai ...',val,'Pahami nilai tempat ratus ribuan.');break}
- case 1:q=choices('Ada '+k+' bagian kue khas daerah. Dua bagian sama besar diberikan kepada teman. Pecahannya adalah ...','2/'+k,['1/'+k,k+'/2','2/'+(k+1)],'Dua bagian dari '+k+' bagian sama besar berarti 2/'+k+'.');break;
+ case 1:{const den=r(5,10),p=r(1,3),j=r(1,den-p);q=choices('Di festival budaya, '+p+'/'+den+' bagian hiasan berwarna merah dan '+j+'/'+den+' bagian berwarna biru. Jumlah bagiannya adalah ...',(p+j)+'/'+den,[p+'/'+den,j+'/'+den,(p+j)+'/'+(den+1)],'Jika penyebut sama, jumlahkan pembilang: ('+p+'+'+j+')/'+den+'.');break}
  case 2:{const v=r(10,85);q=numeric(v+'% dari 100 bendera kecil adalah ... bendera.',v,'Persen berarti per seratus.');break}
- case 3:q=numeric('Panitia punya '+(n*k)+' bunga dan membaginya ke '+n+' kelompok sama banyak. Setiap kelompok mendapat?',k,(n*k)+' ÷ '+n+' = '+k+'.');break;
+ case 3:{const x=n*k,y=n*k+k;const f=gcd(x,y);q=numeric('Panitia budaya mempunyai '+x+' pita merah dan '+y+' pita biru. Keduanya dibagi ke kelompok sebanyak mungkin dengan isi sama tanpa sisa. Maksimal jumlah kelompok (FPB)?',f,'FPB dari '+x+' dan '+y+' adalah '+f+'.');break}
  case 4:q=numeric('Ada dua petak taman pameran, berukuran '+n+'×'+k+' m dan '+b+'×2 m, tanpa tumpang tindih. Luas total?',n*k+b*2,'Jumlah luas kedua petak yang tidak tumpang tindih.');break;
  case 5:q=numeric('Kotak suvenir berbentuk balok dengan ukuran '+n+' cm, '+k+' cm, dan 3 cm. Volumenya ... cm³.',n*k*3,'Volume balok = panjang × lebar × tinggi.');break;
- default:q=numeric('Kapal menempuh '+n*10+' km dalam '+k+' jam. Kecepatan rata-rata ... km/jam.',n*10/k,'Kecepatan = jarak / waktu.');
+ default:if(Math.random()<.5)q=numeric('Kapal menempuh '+n*10+' km dalam '+k+' jam. Kecepatan rata-rata ... km/jam.',n*10/k,'Kecepatan = jarak / waktu.');else q=numeric('Pada diagram batang, pengunjung pameran hari Sabtu '+a+' orang dan hari Minggu '+b+' orang. Jumlah pengunjung?',a+b,'Jumlah kedua batang = '+a+'+'+b+'.');
  }break;
  default:switch(stage){
  case 0:{const val=r(1,8);q=choices('Dalam festival, '+val+'/10 bagian peserta memakai pakaian merah. Bentuk desimal pecahan ini adalah ...','0,'+val,['0,'+(val===9?8:val+1),val+',0','0,0'+val],'Penyebut 10 berarti satu angka di belakang koma.');break}
  case 1:q=numeric('Perbandingan penari pria dan wanita adalah '+n+':'+k+'. Jika keduanya memiliki '+(n+k)+' bagian yang sama, jumlah bagian seluruhnya?',n+k,'Jumlah bagian perbandingan = '+n+' + '+k+'.');break;
- case 2:q=numeric('Ada '+(n*k)+' alat musik yang dibagi rata ke '+n+' kelompok. Setiap kelompok mendapat?',k,'Hasil pembagian '+(n*k)+' ÷ '+n+' = '+k+'.');break;
+ case 2:{const lcm=n*k/gcd(n,k);q=numeric('Di festival '+zone.name+', kelompok drum tampil setiap '+n+' menit dan kelompok tari setiap '+k+' menit. Setelah berapa menit mereka tampil bersama lagi (KPK)?',lcm,'KPK dari '+n+' dan '+k+' adalah '+lcm+'.');break}
  case 3:q=numeric('Kubus suvenir memiliki rusuk '+n+' cm. Luas permukaannya ... cm².',6*n*n,'Luas permukaan kubus = 6 × rusuk².');break;
- case 4:q=numeric('Kotak cendera mata berbentuk balok dengan ukuran '+n+'×'+k+'×2 cm. Volumenya ... cm³.',n*k*2,'Volume balok = panjang × lebar × tinggi.');break;
+ case 4:{const shape=r(0,3);if(shape===0)q=numeric('Kotak cendera mata berbentuk balok ukuran '+n+'×'+k+'×2 cm. Volumenya ... cm³.',n*k*2,'Volume balok = panjang × lebar × tinggi.');else if(shape===1)q=numeric('Wadah berbentuk tabung memiliki jari-jari 7 cm dan tinggi '+n+' cm. Berapa volumenya (π=22/7) ... cm³?',154*n,'Volume tabung = πr²t = (22/7)×49×'+n+'.');else if(shape===2)q=numeric('Prisma segitiga memiliki alas segitiga '+n+' cm, tinggi segitiga '+(2*k)+' cm, dan panjang prisma 3 cm. Volumenya ... cm³.',n*k*3,'Luas alas segitiga = '+n+'×'+(2*k)+'/2, lalu kali 3.');else q=numeric('Limas persegi memiliki sisi alas '+n+' cm dan tinggi '+(3*k)+' cm. Volumenya ... cm³.',n*n*k,'Volume limas = (luas alas×tinggi)/3.');break}
  case 5:q=numeric('Pada denah skala 1:100, jarak dua rumah adat '+n+' cm. Jarak sebenarnya ... meter.',n,'Jarak asli '+n+' × 100 cm = '+n+' meter.');break;
- default:q=choices('Di kantong ada 3 kelereng merah dan 1 biru. Peluang mengambil kelereng biru adalah ...','1/4',['1/3','3/4','1/2'],'Ada 1 biru dari 4 seluruh kelereng. Peluangnya 1/4.');
+ default:if(Math.random()<.5)q=choices('Di kantong ada 3 kelereng merah dan 1 biru. Peluang mengambil kelereng biru adalah ...','1/4',['1/3','3/4','1/2'],'Ada 1 biru dari 4 seluruh kelereng. Peluangnya 1/4.');else q=numeric('Dari '+(a+b)+' siswa peserta, '+a+' memilih belajar di pameran budaya dan '+b+' memilih permainan. Berapa jumlah seluruh siswa?',a+b,'Jumlah siswa = '+a+' + '+b+'.');
  }
  }
  return {...q,grade,topic:gradeTopics[grade]?.[stage]||'',cultureId:zone.id};
