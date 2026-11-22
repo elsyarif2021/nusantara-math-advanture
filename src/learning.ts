@@ -33,7 +33,10 @@ function numeric(text:string,answer:number,explanation:string):Question{
  const shuffled=opts.map(only).sort(()=>Math.random()-.5);return {question:text,options:shuffled,answer:only(answer),explanation};
 }
 function choices(text:string,ans:string,wrong:string[],why:string):Question{
- const options=[ans,...wrong.filter(v=>v!==ans)].slice(0,4).sort(()=>Math.random()-.5);
+ const possibilities=[...new Set([ans,...wrong])];
+ if(/^\\d+\\/\\d+$/.test(ans)){const [num,den]=ans.split('/').map(Number);for(const candidate of [(num+1)+'/'+den,num+'/'+(den+1),(num+2)+'/'+den,(num+1)+'/'+(den+1)])if(!possibilities.includes(candidate))possibilities.push(candidate)}
+ for(const fallback of ['Tidak cukup data','0','1','2','3'])if(possibilities.length<4&&!possibilities.includes(fallback))possibilities.push(fallback);
+ const options=possibilities.slice(0,4).sort(()=>Math.random()-.5);
  return {question:text,answer:ans,options,explanation:why};
 }
 export function makeCultureQuestion(grade:string,stage:number):Question{
