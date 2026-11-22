@@ -74,3 +74,16 @@
 .question-empty p{font-size:13px;color:#64839f;line-height:1.5}
 @media(max-width:1000px){.question-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.question-fields.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.question-manager .admin-title{align-items:flex-start}.question-manager .admin-title .big-primary{width:100%}.question-filter-bar{grid-template-columns:1fr;padding:12px}.question-editor{padding:13px}.question-editor-head{align-items:flex-start}.question-editor-head .outline-button{padding:8px}.question-fields.two,.question-fields.three{grid-template-columns:1fr}.question-option-preview{grid-template-columns:1fr}.question-manage-card{padding:13px}.question-manage-card h3{font-size:17px}.question-manage-actions{justify-content:flex-start}.delete-confirm{width:100%}.question-editor-actions{align-items:stretch}.question-editor-actions>*{width:100%;justify-content:center}}
+
+/* Question source settings: per-class and per-island */
+.question-mode-panel{padding:20px;border:2px solid #bde7cf;border-radius:17px;background:linear-gradient(115deg,#edfdf1,#eefaff);margin:15px 0 22px}
+.question-mode-panel h3{font:800 21px "Baloo 2";color:#1d6e82;margin:0 0 4px}
+.question-mode-panel p{font-size:12px;color:#507997;margin:0 0 15px;line-height:1.6}
+.question-mode-controls{display:grid;grid-template-columns:1fr 1fr minmax(200px,1.6fr) auto;align-items:end;gap:10px}
+.question-mode-controls label{display:flex;flex-direction:column;gap:6px;color:#2d7182;font-size:12px;font-weight:900}
+.question-mode-controls select{width:100%;border:2px solid #b4dfe5;border-radius:12px;padding:11px 13px;background:white;color:#285a7c;min-width:0}
+.question-mode-footer{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:13px;padding-top:13px;border-top:1px solid #b9e1d3}
+.question-mode-footer span{font-size:12px;color:#4d7180;line-height:1.5;max-width:660px;font-weight:800}
+.question-mode-footer button{flex-shrink:0}
+@media(max-width:920px){.question-mode-controls{grid-template-columns:1fr 1fr}.question-mode-footer{flex-direction:column;align-items:flex-start}}
+@media(max-width:600px){.question-mode-panel{padding:12px}.question-mode-controls{grid-template-columns:1fr}.question-mode-controls .big-primary,.question-mode-footer button{width:100%}}
