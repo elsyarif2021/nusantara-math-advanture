@@ -12,7 +12,7 @@ async function request(path:string,options:RequestInit={}):Promise<any>{
  if(!response.ok)throw Error(String(body.error||response.status));
  return body;
 }
-export default function TeacherPortal({onHome}:{onHome:()=>void}){
+export default function TeacherPortal({onHome,onAuthChange}:{onHome:()=>void;onAuthChange?:(signedIn:boolean)=>void}){
  const [teacher,setTeacher]=useState<Teacher|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
  const [username,setUsername]=useState(''),[password,setPassword]=useState('');
  const [links,setLinks]=useState<TeacherLink[]>([]),[students,setStudents]=useState<Student[]>([]);
@@ -21,6 +21,7 @@ export default function TeacherPortal({onHome}:{onHome:()=>void}){
  const [currentPassword,setCurrentPassword]=useState(''),[newPassword,setNewPassword]=useState(''),[passwordOpen,setPasswordOpen]=useState(false);
  const [revoking,setRevoking]=useState<string|null>(null);
  const [teacherTab,setTeacherTab]=useState<'classes'|'questions'|'students'|'account'>('classes');
+ useEffect(()=>{onAuthChange?.(Boolean(teacher))},[teacher,onAuthChange]);
  useEffect(()=>{request('teacher/session').then(r=>setTeacher(r.user||null)).catch(()=>setTeacher(null)).finally(()=>setLoading(false))},[]);
  useEffect(()=>{if(!teacher)return;refresh();const t=setInterval(refresh,8000);return()=>clearInterval(t)},[teacher?.id,filter]);
  async function refresh(){
