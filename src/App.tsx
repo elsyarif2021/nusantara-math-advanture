@@ -175,11 +175,10 @@ export default function App(){
       <button onClick={()=>setMusic(v=>!v)}>{music?<Volume2 size={16}/>:<VolumeX size={16}/>} Musik {music?'Aktif':'Nonaktif'}</button>
       <div className="nav-more-divider"/>
       <button onClick={openTeacher}><GraduationCap size={16}/> Portal Guru</button>
-      <button onClick={openAdmin}><ShieldCheck size={16}/> Super Admin</button>
      </div>}
     </div>
    </nav>
-   <div className="top-actions">{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>}</div>
+   <div className="top-actions"><button className="admin-header" onClick={openAdmin} aria-label="Masuk sebagai Super Admin"><ShieldCheck size={16}/><span>Masuk Admin</span></button>{student?<button className="user-pill" onClick={()=>navigate('pencapaian')}>👦 {student.name.split(' ')[0]}</button>:<button className="user-pill" onClick={()=>setModal(true)}>👤 Masuk Siswa</button>}</div>
   </header>
   {error&&<div role="alert" className="flash err"><XCircle size={16}/>{error}<button onClick={()=>setError('')} aria-label="Tutup">×</button></div>}
   {notice&&<div className="flash ok"><CheckCircle2 size={16}/>{notice}<button onClick={()=>setNotice('')} aria-label="Tutup">×</button></div>}
