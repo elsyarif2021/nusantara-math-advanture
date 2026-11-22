@@ -6,15 +6,20 @@ import {normalizeQuestion,sdTopics} from '../api/questionBank.js';
 const png=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(30)]);
 const jpeg=Buffer.concat([Buffer.from('ffd8ffe00010','hex'),Buffer.alloc(32)]);
 const webp=Buffer.concat([Buffer.from('RIFF','ascii'),Buffer.alloc(4),Buffer.from('WEBP','ascii'),Buffer.alloc(20)]);
+const gif=Buffer.concat([Buffer.from('GIF89a','ascii'),Buffer.alloc(30)]);
+const avif=Buffer.concat([Buffer.alloc(4),Buffer.from('ftypavif','ascii'),Buffer.alloc(30)]);
+const bmp=Buffer.concat([Buffer.from('BM','ascii'),Buffer.alloc(40)]);
 const dataUrl=(buffer,type)=>'data:'+type+';base64,'+buffer.toString('base64');
 const owner='t-123e4567-e89b-12d3-a456-426614174000';
 const imageId='456e4567-e89b-42d3-a456-426614174888';
-test('Accept only valid JPEG PNG and WEBP binaries matching their MIME types',()=>{
- for(const [bytes,mime] of [[png,'image/png'],[jpeg,'image/jpeg'],[webp,'image/webp']]){
+test('Accept common JPEG PNG WEBP GIF AVIF BMP with magic-byte validation',()=>{
+ for(const [bytes,mime] of [[png,'image/png'],[jpeg,'image/jpeg'],[webp,'image/webp'],[gif,'image/gif'],[avif,'image/avif'],[bmp,'image/bmp']]){
   const actual=parseQuestionImage({dataUrl:dataUrl(bytes,mime)});
   assert.equal(actual.contentType,mime);
   assert.deepEqual(actual.buffer,bytes);
  }
+ assert.equal(parseQuestionImage({dataUrl:dataUrl(jpeg,'image/jpg')}).contentType,'image/jpeg');
+ assert.equal(parseQuestionImage({dataUrl:dataUrl(bmp,'image/x-ms-bmp')}).contentType,'image/bmp');
  assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(png,'image/jpeg')}),/Isi file/);
  assert.throws(()=>parseQuestionImage({dataUrl:'data:image/svg+xml;base64,PHN2Zz4='}),/Pilih gambar/);
  assert.throws(()=>parseQuestionImage({dataUrl:'data:image/png;base64,AAAA'}),/Isi file/);
@@ -31,6 +36,12 @@ test('Image location is private-storage backed, strictly scoped and cannot trave
  assert.equal(isInternalQuestionImageUrl(location.url+'?download=1'),false);
  assert.throws(()=>createQuestionImageLocation('../superadmin','image/png',imageId));
  assert.throws(()=>createQuestionImageLocation(owner,'text/html',imageId));
+ for(const [mime,ext] of [['image/jpeg','jpg'],['image/png','png'],['image/webp','webp'],['image/gif','gif'],['image/avif','avif'],['image/bmp','bmp']]){
+  const loc=createQuestionImageLocation(owner,mime,imageId);
+  assert.equal(isInternalQuestionImageUrl(loc.url),true);
+  assert.deepEqual(imageStorageFromRoute(loc.url.slice(5)),{pathname:loc.pathname,contentType:mime});
+  assert.equal(loc.pathname.endsWith('.'+ext),true);
+ }
 });
 test('Question CRUD accepts secure generated image URLs and rejects arbitrary relative routes',()=>{
  const imageUrl=createQuestionImageLocation('superadmin','image/jpeg',imageId).url;
