@@ -1,58 +1,70 @@
-# Nusantara Math Adventure Pro
+# ⛵ Nusantara Math Adventure — Edisi Sekolah Dasar
 
-**Deployment produksi Vercel:** https://nusantara-math-advanture.vercel.app  
-**Repository:** https://github.com/elsyarif2021/nusantara-math-advanture
+**Aplikasi produksi:** https://nusantara-math-advanture.vercel.app  
+**Source GitHub:** https://github.com/elsyarif2021/nusantara-math-advanture
 
-## Status dan cakupan implementasi
+Aplikasi petualangan belajar Matematika **Kurikulum Merdeka SD Kelas 1–6** berbasis React, TypeScript, Vite, Vercel Functions, dan private Vercel Blob Storage.
 
-Versi awal platform Vercel berjalan menggunakan React 19, TypeScript, Vite, Vercel Serverless Functions, dan private Vercel Blob Storage untuk menyimpan data progres siswa. Struktur proyek ini ditulis sebagai migrasi karena source aplikasi sebelumnya memakai AppDeploy SDK.
+## 🌺 Fitur utama
 
-Fitur yang sudah dikodekan:
-- Masuk sebagai siswa memakai **nama dan kelas tanpa PIN**.
-- Peta tujuh pulau bergaya ilustrasi, misi matematika kelas 1–12, XP, koin, lencana, dan pembahasan otomatis.
-- Sertifikat PDF siswa, PWA manifest dan service worker dasar.
-- Panel admin terlindungi sesi dan kata sandi server, monitor progres diperbarui setiap 8 detik, bank soal, ekspor XLSX dan PDF.
-- Pembuatan soal matematika melalui Ollama Cloud jika API key terpasang.
-- Form soal manual dengan URL gambar, URL YouTube, dan URL audio.
-- Identitas sekolah dan tampilan responsif.
+- Tampilan permainan anak-anak bertema kapal dan kebudayaan Indonesia, responsif untuk HP dan desktop.
+- Login siswa dengan nama dan kelas tanpa PIN, progres tersimpan secara privat.
+- Peta **SVG interaktif** berisi tujuh wilayah: Sumatra, Jawa, Kalimantan, Sulawesi, Bali/Nusa Tenggara, Maluku, Papua.
+- 42 kombinasi misi (enam kelas × tujuh pulau). Delapan soal dasar setiap misi dari pembangkit soal berbasis aturan, dilengkapi opsi jawaban, pembahasan, dan ilustrasi vektor budaya sesuai pulau.
+- Materi yang dicakup: bilangan, operasi hitung, pecahan, desimal, kelipatan/faktor, pengukuran, geometri, volume, rasio, diagram/data, dan peluang sederhana pada jenjang yang sesuai.
+- Kartu budaya: Rumah Gadang/Tari Piring; Borobudur/Batik; Rumah Betang/Orangutan; Tongkonan; Pura Bali/Sasando NTT; pala Banda/tifa; noken/cenderawasih.
+- Bintang, XP, lencana pulau, progres misi, reward harian sederhana, dan sertifikat PDF.
+- Audio **orisinal** di `public/resources/nusantara-ceria.wav` untuk musik latar, efek suara jawaban yang disintesis Web Audio, dan narasi bahasa Indonesia melalui Speech Synthesis pada browser yang mendukung.
+- Portal admin: akses dengan kata sandi server, pemantauan progres kelas SD, ekspor Excel/PDF, generator soal Ollama Cloud bila key diaktifkan, bank soal dan pengaturan sekolah.
+- PWA dasar, service worker dan manifest.
 
-**Batasan yang harus diketahui:** Peta bukan renderer 3D sungguhan; monitor memakai polling bukan WebSockets; bank soal dan input progres belum diaudit untuk penggunaan ujian berisiko tinggi; file MP3 asli belum masuk repository, audio sementara memakai URL situs Sites lama; belum ada upload file multimedia langsung, peran guru multiakun, validasi kurikulum secara menyeluruh, dan pengujian end-to-end browser. **Jangan anggap ini sebagai migrasi seluruh fitur/aset dari ZIP sebelumnya.**
+## Status pengujian
 
-## Menjalankan secara lokal
+- `npm run check`: pemeriksaan TypeScript.
+- `npm test`: 3 kelompok pengujian, termasuk pemeriksaan semua 42 kombinasi topik/pulau berulang untuk memastikan jawaban ada dalam empat opsi unik.
+- `npm run build`: bundling Vite.
+- Deployment produksi Vercel otomatis untuk push pada branch `main`.
+
+**Catatan ketepatan konten:** Modul ini berisi soal latihan yang dibuat berdasarkan cakupan materi SD yang diberikan pengguna; bukan pengganti CP/ATP/TP resmi yang telah diverifikasi per satuan pendidikan. Soal cerita faktual dan gambar budaya perlu ditinjau guru sebelum dipakai sebagai asesmen resmi.
+
+## Backend dan secrets
+
+Vercel project `nusantara-math-advanture`, framework Vite, output `dist`, fungsi region `sin1`. Persistent storage menggunakan **private Vercel Blob** store yang terhubung ke project.
+
+Atur di Vercel → Project → Settings → Environment Variables, hanya di **server**:
+
+| Variabel | Kegunaan |
+|---|---|
+| `BLOB_READ_WRITE_TOKEN` | Terpasang otomatis melalui integrasi private Vercel Blob |
+| `ADMIN_PASSWORD` | Kata sandi admin minimal 12 karakter, unik |
+| `SESSION_SECRET` | Kunci sesi acak minimal 32 karakter |
+| `OLLAMA_API_KEY` | Kunci Ollama Cloud untuk fitur generator AI |
+| `OLLAMA_MODEL` | Model Ollama yang tersedia (opsional) |
+
+Jangan menyimpan secrets dalam GitHub, frontend React, issue, atau chat. Lakukan **redeploy** setelah mengganti environment variables.
+
+Cek kesiapan API: `GET https://nusantara-math-advanture.vercel.app/api/health`. Nilai `admin:false` berarti konfigurasi admin belum lengkap; `storage:true` berarti token penyimpanan tersedia.
+
+## Pengembangan lokal
 
 ```bash
 npm install
 npm run check
+npm test
 npm run build
 npm run dev
 ```
 
-UI lokal membutuhkan endpoint backend di `/api/*`. Untuk menguji seluruh fitur gunakan deployment Vercel dengan koneksi penyimpanan.
+Mode `npm run dev` hanya menjalankan frontend Vite; endpoint server `/api/*` membutuhkan lingkungan Vercel atau proxy lokal.
 
-## Konfigurasi Vercel
+## Keterbatasan dan keamanan
 
-Vercel project: `nusantara-math-advanture`. Branch: `main`.
-- Framework Preset: Vite
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- Region fungsi: `sin1`
-
-**Storage**: Vercel Blob store **private** `nusantara-math-pro-students` sudah dipasang ke proyek. Variabel `BLOB_READ_WRITE_TOKEN` dibuat otomatis oleh integrasi storage. Jangan menaruh token tersebut di GitHub atau React frontend.
-
-Di **Vercel → Project → Settings → Environment Variables**, set server-only values:
-- `ADMIN_PASSWORD`: kata sandi unik minimal 12 karakter.
-- `SESSION_SECRET`: nilai acak panjang minimal 32 karakter untuk tanda tangan sesi.
-- `OLLAMA_API_KEY`: key server Ollama Cloud untuk generator AI.
-- `OLLAMA_MODEL` (opsional): contoh `glm-5.3-flash:cloud`; cek model yang tersedia di akun Ollama Cloud.
-
-Atur minimal environment **Production**, dan redeploy project setelah perubahan env. Jangan tulis nilai rahasia di source code, issue GitHub, atau chat.
-
-Cek kesehatan: `GET /api/health`. Balasan `admin:false` berarti ADMIN_PASSWORD / SESSION_SECRET belum disetel. Cek sesi admin: `GET /api/admin/session`.
-
-## Pilihan Cloudflare (belum di-deploy)
-
-File `wrangler.jsonc` dan `migrations/0001_init.sql` hanya persiapan alternatif Cloudflare Workers + D1 dan masih memerlukan ID D1 sesungguhnya, backend yang kompatibel, serta kredensial Cloudflare. Deployment aktif adalah di **Vercel**, bukan Cloudflare.
-
-## Privasi dan keamanan
-
-Sesi admin disimpan dalam cookie HttpOnly + Secure + SameSite=Strict. Siswa tidak memakai PIN; karena itu progres belajar bukan data resmi ujian. Gunakan identifikasi siswa yang memadai jika nanti ingin memakainya sebagai penilaian sekolah. Jangan mengunggah data pribadi siswa sebelum kebijakan privasi dan pengaturan akses sekolah ditinjau.
+- Peta berupa ilustrasi vektor SVG, **bukan geografi presisi atau 3D**.
+- Admin polling setiap 8 detik, **bukan WebSocket realtime**.
+- Identitas siswa berbasis nama + token acak pada browser, **bukan autentikasi kuat**. Jangan gunakan untuk ujian resmi atau penyimpanan data sensitif tanpa perancangan ulang identitas siswa.
+- XP masih dikirim klien, dengan validasi lompatan progres terbatas di backend; bukan sistem anti-kecurangan.
+- Belum ada upload binary media langsung ke cloud dari dashboard guru; saat ini tersedia URL gambar, audio, dan video YouTube serta ilustrasi budaya bawaan.
+- Musik `nusantara-ceria.wav` adalah track baru buatan sendiri. MP3 asli dari ZIP sumber belum dipindahkan ke repository.
+- Ekspor Excel memakai ExcelJS dan PDF memakai jsPDF; format dokumen sederhana.
+- Generator soal AI memerlukan kunci Ollama dan audit manual kebenaran butir.
+- Kode migrasi alternatif Cloudflare Workers/D1 masih **placeholder** pada `wrangler.jsonc`; deployment aktif ada di Vercel.
