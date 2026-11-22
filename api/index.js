@@ -11,7 +11,7 @@ function isAdmin(req){if(!adminReady())return false;const value=cookies(req).nma
 const storeReady=()=>Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 async function read(path){const r=await get(path,{access:'private'});if(!r)return null;return await new Response(r.stream).json()}
 async function write(path,obj){return put(path,JSON.stringify(obj),{access:'private',contentType:'application/json',allowOverwrite:true})}
-function studentOK(p,id){return p&&p.id===id&&typeof p.name==='string'&&p.name.trim().length>=2&&p.name.length<=80&&/^Kelas (?:[1-9]|1[0-2])$/.test(p.grade)&&Number.isSafeInteger(p.xp)&&p.xp>=0&&p.xp<=10000000&&Array.isArray(p.completed)&&p.completed.length<=14&&p.completed.every(x=>Number.isInteger(x)&&x>=1&&x<=7)&&Number.isInteger(p.gamesPlayed)&&p.gamesPlayed>=0&&p.gamesPlayed<=1000000&&Array.isArray(p.recent)&&p.recent.length<=25}
+function studentOK(p,id){return p&&p.id===id&&typeof p.name==='string'&&p.name.trim().length>=2&&p.name.length<=80&&/^Kelas [1-6]$/.test(p.grade)&&Number.isSafeInteger(p.xp)&&p.xp>=0&&p.xp<=10000000&&Array.isArray(p.completed)&&p.completed.length<=14&&p.completed.every(x=>Number.isInteger(x)&&x>=1&&x<=7)&&Number.isInteger(p.gamesPlayed)&&p.gamesPlayed>=0&&p.gamesPlayed<=1000000&&Array.isArray(p.recent)&&p.recent.length<=25}
 const pathname=req=>{let s=req.query.path??'';if(Array.isArray(s))s=s.join('/');return String(s).replace(/^\/+|\/+$/g,'')};
 export default async function handler(req,res){
  const path=pathname(req), method=req.method;
@@ -47,9 +47,9 @@ export default async function handler(req,res){
   if(path==='admin/generate'&&method==='POST'){
    if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
    if(!process.env.OLLAMA_API_KEY)return send(res,503,{error:'Setel OLLAMA_API_KEY di Environment Variables Vercel'});
-   const body=req.body||{},grade=String(body.grade||''),topic=String(body.topic||'').slice(0,100);
-   if(!/^Kelas (?:[7-9]|1[0-2])$/.test(grade)||!topic)return send(res,400,{error:'Kelas atau topik tidak valid'});
-   const prompt='Buat 5 soal pilihan ganda matematika '+grade+' topik '+topic+'. Gunakan Bahasa Indonesia, pilihan jawaban 4 nomor bernilai string. Setiap soal memiliki kunci jawaban dan pembahasan perhitungan yang tepat. Kembalikan HANYA JSON array dengan skema [{question:string,options:string[],answer:string,explanation:string}]. Hindari informasi keliru.';
+   const body=req.body||{},grade=String(body.grade||''),topic=String(body.topic||'').slice(0,100),region=String(body.region||'Nusantara').slice(0,80);
+   if(!/^Kelas [1-6]$/.test(grade)||!topic)return send(res,400,{error:'Kelas atau topik tidak valid'});
+   const prompt='Untuk anak SD '+grade+' (Kurikulum Merdeka) buat 5 soal matematika topik '+topic+'. Gunakan soal cerita ramah anak terkait budaya '+region+' Indonesia secara akurat dan hormat. Gunakan bilangan dan konsep matematika sesuai jenjang; pecahan dengan operasi benar dan jawaban tunggal. Setiap soal memiliki tepat 4 opsi string, answer SAMA PERSIS dengan salah satu opsi, dan explanation langkah perhitungan. Kembalikan HANYA array JSON [{question:string,options:string[],answer:string,explanation:string}]. Jangan mengarang fakta budaya yang tidak pasti.';
    const response=await fetch('https://ollama.com/api/chat',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+process.env.OLLAMA_API_KEY},body:JSON.stringify({model:process.env.OLLAMA_MODEL||'glm-5.3-flash:cloud',messages:[{role:'user',content:prompt}],stream:false}),signal:AbortSignal.timeout(55000)});
    if(!response.ok)return send(res,502,{error:'Ollama Cloud mengembalikan HTTP '+response.status});
    const raw=await response.json();const content=String(raw.message?.content||'').replace(/^\`\`\`(?:json)?\s*/,'').replace(/\s*\`\`\`$/,'');let questions;try{questions=JSON.parse(content)}catch{return send(res,502,{error:'Format jawaban Ollama bukan JSON valid'});}
@@ -89,6 +89,9 @@ export default async function handler(req,res){
     const p=req.body;if(!studentOK(p,id))return send(res,400,{error:'Data siswa tidak valid'});
     const old=await read('students/'+id+'.json');
     if(old&&(old.id!==id||old.grade!==p.grade||old.name!==p.name))return send(res,409,{error:'Identitas perjalanan tidak cocok'});
+    if(!old&&(p.gamesPlayed!==0||p.xp!==0||p.completed.length!==0||p.recent.length!==0))return send(res,409,{error:'Profil baru wajib dimulai dengan progres kosong'});
+    if(old&&(p.gamesPlayed!==old.gamesPlayed+1||p.xp<old.xp||p.xp-old.xp>300||p.completed.length<old.completed.length||p.completed.length>old.completed.length+1))return send(res,409,{error:'Lompatan progres tidak valid'});
+    if(old&&(p.recent.length===0||p.recent.at(-1)?.total!==8||p.recent.at(-1)?.score<0||p.recent.at(-1)?.score>8))return send(res,409,{error:'Hasil latihan tidak valid'});
     const progress={id,name:p.name.trim(),grade:p.grade,completed:[...new Set(p.completed)],xp:p.xp,gamesPlayed:p.gamesPlayed,recent:p.recent.slice(-25),updatedAt:new Date().toISOString()};
     await write('students/'+id+'.json',progress);
     return send(res,200,{saved:true,progress});
