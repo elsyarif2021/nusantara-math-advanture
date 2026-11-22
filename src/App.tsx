@@ -1,9 +1,15 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
 import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star, Trophy,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift} from 'lucide-react';
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
+import TeacherPortal from './TeacherPortal';
+import SuperAdminTeachers from './SuperAdminTeachers';
+import './teacher.css';
 import {quizSound} from './sounds';
 import {gradeTopics,grades,islandData,makeMission,topicChips,type Question,type Student,type SchoolConfig} from './learning';
-type View='home'|'materi'|'peringkat'|'pencapaian'|'quiz'|'result'|'admin';
+type View='home'|'materi'|'peringkat'|'pencapaian'|'quiz'|'result'|'admin'|'teacher';
+type ClassInvite={token:string;grade:string;label:string;teacherName:string};
+const pathJoinToken=()=>window.location.pathname.match(/^\/gabung\/([a-f0-9]{48})\/?$/)?.[1]||null;
+const isJoinPath=()=>window.location.pathname.startsWith('/gabung/');
 const api=async(path:string,options:RequestInit={})=>{
  const response=await fetch('/api/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{'Content-Type':'application/json',...options.headers}});
  let data:any;try{data=await response.json()}catch{throw Error('Server tidak mengembalikan respons JSON.')}
@@ -14,9 +20,10 @@ function videoId(url:string){try{const u=new URL(url);if(u.hostname==='youtu.be'
 const quote=['Matematika itu seru!','Kamu hebat! Terus berlatih, ya!','Setiap soal adalah petualangan baru!','Mari belajar sambil mengenal budaya Indonesia!'];
 const emptyQuestion=(grade='Kelas 1'):Question=>({grade,topic:gradeTopics[grade]?.[0]||'',cultureId:'sumatra',question:'',options:['','','',''],answer:'',explanation:'',imageUrl:'',videoUrl:'',audioUrl:'',active:true});
 export default function App(){
- const[view,setView]=useState<View>(()=>window.location.pathname==='/admin'?'admin':'home');
+ const[view,setView]=useState<View>(()=>window.location.pathname==='/admin'?'admin':window.location.pathname==='/guru'?'teacher':'home');
  const[adminSetup,setAdminSetup]=useState<boolean|null>(null);
  const[chosenGrade,setChosenGrade]=useState('Kelas 1'),[student,setStudent]=useState<Student|null>(null),[name,setName]=useState(''),[modal,setModal]=useState(false);
+ const[invite,setInvite]=useState<ClassInvite|null>(null),[inviteStatus,setInviteStatus]=useState<'none'|'loading'|'valid'|'invalid'>(()=>isJoinPath()?'loading':'none');
  const[school,setSchool]=useState<SchoolConfig>({name:'Nusantara Math Adventure',music:true,logoUrl:''});
  const[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
  const[island,setIsland]=useState(0),[questions,setQuestions]=useState<Question[]>([]),[questionIndex,setQuestionIndex]=useState(0),[answer,setAnswer]=useState(''),[correct,setCorrect]=useState(0),[awardedXP,setAwardedXP]=useState(0);
