@@ -98,9 +98,9 @@ export default function TeacherQuestions({links,mode='teacher',teacherId,ownerId
     <label>Pembahasan *<textarea rows={3} maxLength={1800} value={draft.explanation} onChange={e=>setDraft(d=>d?{...d,explanation:e.target.value}:d)} placeholder="Tunjukkan cara menghitung jawaban yang benar…"/></label>
     <div className="question-image-uploader">
      <label>🖼️ Gambar Soal (Opsional) — langsung dari HP / laptop
-      <input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageUploading||Boolean(mediaUploading)||busy} aria-label="Pilih gambar soal dari perangkat" onChange={e=>{const f=e.currentTarget.files?.[0];if(f)void onPickImage(f);e.currentTarget.value=''}}/>
+      <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp" disabled={imageUploading||Boolean(mediaUploading)||busy} aria-label="Pilih gambar soal dari perangkat" onChange={e=>{const f=e.currentTarget.files?.[0];if(f)void onPickImage(f);e.currentTarget.value=''}}/>
      </label>
-     <small>Ketuk “Pilih File” untuk membuka galeri atau file perangkat. JPG, PNG, WEBP · maksimal 2 MB. Tidak perlu menyalin tautan gambar.</small>
+     <small>Ketuk “Pilih File” untuk membuka galeri atau file perangkat. JPG/JPEG, PNG, WebP, GIF, AVIF, BMP · maksimal 2 MB. Tidak perlu menyalin tautan gambar.</small>
      {imageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar dari perangkat…</span>}
      {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal yang ditambahkan" loading="lazy"/><button type="button" className="outline-button" disabled={imageUploading||busy} onClick={()=>setDraft(d=>d?{...d,imageUrl:''}:d)}>Hapus gambar dari soal</button></div>}
     </div>
