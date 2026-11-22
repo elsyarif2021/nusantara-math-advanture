@@ -36,7 +36,7 @@ export default function MathHelper({question,topic,grade,answered}:{question:str
    </div>:
   <section className="math-aid-panel" aria-label={'Panduan sesuai soal '+aid.title}>
    <div className="math-aid-heading"><div><b>{aid.icon} {aid.title}</b><small>{grade||'Siswa SD'} · Langkah khusus soal ini · Tanpa membocorkan kunci jawaban</small></div><button type="button" onClick={close} aria-label="Tutup alat bantu"><X size={18}/></button></div>
-   <div className="math-aid-stages" aria-label={'Langkah '+(stage+1)+' dari 4}>{stageTitles.map((title,i)=><button type="button" key={title} className={stage===i?'active':i<stage?'visited':''} onClick={()=>setStage(i as Stage)} aria-current={stage===i?'step':undefined}><span>{i+1}</span><small>{title}</small></button>)}</div>
+   <div className="math-aid-stages" aria-label={'Langkah '+(stage+1)+' dari 4'}>{stageTitles.map((title,i)=><button type="button" key={title} className={stage===i?'active':i<stage?'visited':''} onClick={()=>setStage(i as Stage)} aria-current={stage===i?'step':undefined}><span>{i+1}</span><small>{title}</small></button>)}</div>
    <div className="math-aid-body">
     <h3>{stage+1}. {stageTitles[stage]}</h3>
     <p>{aid.steps[stage]}</p>
