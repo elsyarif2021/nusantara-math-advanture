@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type CSSProperties} from 'react';
-import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star, Trophy,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift,Users} from 'lucide-react';
+import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Star,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift,Users} from 'lucide-react';
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
 import SuperAdminTeachers from './SuperAdminTeachers';
@@ -198,7 +198,7 @@ export default function App(){
       <div className="level-card"><div className="level-label"><span>🌟</span><div><b>Level {student?Math.floor(student.xp/250)+1:1}</b><small>{rank}</small></div></div><div className="progress-rail"><div style={{width:((student?.xp||0)%250)/250*100+'%'}}/></div><small>{student?.xp||0} XP • Menuju level berikutnya</small></div>
       <div className="stats"><div><span>⭐ Bintang</span><b>{student?Math.floor(student.xp/25):0}</b></div><div><span>🏅 Lencana</span><b>{student?.completed.length||0}</b></div><div><span>🚩 Misi Selesai</span><b>{student?.completed.length||0} / 7</b></div></div>
       
-      <button className="profile-action" onClick={()=>student?navigate('pencapaian'):setModal(true)}>{student?'Lihat Pencapaian':'Masuk sebagai Siswa'} <ChevronRight size={15}/></button>
+      
      </aside>
      <section className="map-card" ref={mapRef} id="peta"><div className="map-heading"><h2>🧭 Pilih Pulau di Peta</h2><small>Sentuh satu pulau untuk mengerjakan soal Matematika</small></div><IndonesiaMap completed={student?.completed||[]} onSelect={startMission}/><div className="map-foot"><span>⛵ Kapalmu siap berlayar!</span><span>7 Pulau • 7 Budaya • 7 Misi</span></div></section>
 
@@ -327,7 +327,7 @@ export default function App(){
     {adminTab==='settings'&&<section className="admin-box"><div className="admin-title"><div><h2>🏫 Identitas Sekolah</h2><p>Sesuaikan nama dan URL logo sekolah.</p></div></div><div className="admin-input-row"><input value={school.name} onChange={e=>setSchool({...school,name:e.target.value})} placeholder="Nama sekolah"/><input value={school.logoUrl||''} onChange={e=>setSchool({...school,logoUrl:e.target.value})} placeholder="URL logo sekolah (HTTPS)"/><button className="big-primary" onClick={saveSchool}><Settings size={15}/> Simpan</button></div></section>}
    </div>}
   </main>}
-  <footer className="site-footer"><span>⛵ {school.name}</span><div><span>Matematika SD Kelas 1–6 • Jelajah Budaya Indonesia</span><button onClick={openTeacher}><GraduationCap size={13}/> Masuk Guru</button><button onClick={openAdmin}><ShieldCheck size={13}/> Super Admin</button></div></footer>
+  <footer className="site-footer"><span>⛵ {school.name}</span><div><span>Matematika SD Kelas 1–6 • Jelajah Budaya Indonesia</span></div></footer>
   {modal&&<div className="modal-underlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(false)}}><section className="login-modal" role="dialog" aria-modal="true" aria-label="Masuk sebagai siswa"><button className="modal-close" onClick={()=>setModal(false)} aria-label="Tutup"><X size={19}/></button><div className="login-mascot">🧒🏽 🗺️</div><h2>Halo, Petualang Hebat!</h2><p>Isi nama dan kelasmu untuk mulai berlayar. Tanpa PIN, ya!</p><label>Nama Lengkap Siswa<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} placeholder="Tulis nama kamu…"/></label>{invite&&inviteStatus==='valid'&&<div className="invite-modal-label">👩‍🏫 Kelas {invite.label} · Guru {invite.teacherName}</div>}<label>Kelas SD<select disabled={Boolean(invite)} value={invite?.grade||chosenGrade} onChange={e=>setChosenGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select></label><button className="big-primary full" disabled={busy||(isJoinPath()&&inviteStatus!=='valid')} onClick={enroll}><Ship size={18}/>{busy?'Menyimpan…':'Masuk ke Peta'}</button><small>Data belajar tersimpan di penyimpanan privat. Jangan gunakan nama lengkap jika perangkat dipakai bersama.</small></section></div>}
  </div>;
 }
