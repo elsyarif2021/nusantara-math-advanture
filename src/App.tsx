@@ -300,18 +300,21 @@ export default function App(){
       <label>Kunci jawaban *<select value={draft.answer} onChange={e=>setDraft(d=>({...d,answer:e.target.value}))}><option value="">Pilih kunci jawaban</option>{draft.options.map((v,i)=><option key={i} value={v} disabled={!v.trim()}>{String.fromCharCode(65+i)} — {v||'(belum diisi)'}</option>)}</select></label>
       <label>Pembahasan *<textarea rows={3} value={draft.explanation} maxLength={1800} onChange={e=>setDraft(d=>({...d,explanation:e.target.value}))} placeholder="Jelaskan langkah perhitungan dan alasan jawaban benar…"/></label>
       <div className="question-image-uploader">
-       <label>🖼️ Upload gambar soal dari HP/laptop (JPG, PNG, WEBP · maks. 2 MB)
-        <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||adminImageUploading} onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void onAdminPickImage(file);e.currentTarget.value=''}}/>
+       <label>🖼️ Gambar Soal — langsung dari HP / laptop
+        <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||adminImageUploading} aria-label="Pilih gambar soal dari perangkat" onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void onAdminPickImage(file);e.currentTarget.value=''}}/>
        </label>
-       {adminImageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar soal…</span>}
-       {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal" loading="lazy"/><button className="outline-button" onClick={()=>setDraft(d=>({...d,imageUrl:''}))} disabled={adminImageUploading}>Hapus gambar dari soal</button></div>}
+       <small>Ketuk “Pilih File” untuk membuka galeri atau file perangkat. JPG, PNG, WEBP · maksimal 2 MB. Tidak perlu menyalin tautan gambar.</small>
+       {adminImageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar dari perangkat…</span>}
+       {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal" loading="lazy"/><button type="button" className="outline-button" onClick={()=>setDraft(d=>({...d,imageUrl:''}))} disabled={busy||adminImageUploading}>Hapus gambar dari soal</button></div>}
       </div>
-      <div className="question-fields three">
-       <label>Alamat gambar HTTPS / otomatis setelah upload<input type="text" value={draft.imageUrl||''} onChange={e=>setDraft(d=>({...d,imageUrl:e.target.value}))} placeholder="https://.../gambar.png"/></label>
-       <label>URL YouTube<input type="url" value={draft.videoUrl||''} onChange={e=>setDraft(d=>({...d,videoUrl:e.target.value}))} placeholder="https://youtu.be/..."/></label>
-       <label>URL audio HTTPS<input type="url" value={draft.audioUrl||''} onChange={e=>setDraft(d=>({...d,audioUrl:e.target.value}))} placeholder="https://.../narasi.mp3"/></label>
-      </div>
-      <div className="question-editor-actions"><span>* Wajib diisi. Gambar budaya otomatis mengikuti pulau, sementara URL media bersifat opsional.</span><button className="outline-button" onClick={()=>{setAdding(false);setDraft(emptyQuestion())}}>Batal</button><button className="big-primary" disabled={busy||adminImageUploading||draft.question.trim().length<6||draft.explanation.trim().length<5||draft.options.some(o=>!o.trim())||new Set(draft.options.map(x=>x.trim())).size!==4||!draft.options.includes(draft.answer)} onClick={submitQuestion}>{busy?'Menyimpan…':draft.id?'💾 Simpan Perubahan':'💾 Simpan Soal Baru'}</button></div>
+      <details className="question-extra-media">
+       <summary>Media tambahan (video YouTube / audio eksternal, opsional)</summary>
+       <div className="question-fields two">
+        <label>Video YouTube<input type="url" value={draft.videoUrl||''} onChange={e=>setDraft(d=>({...d,videoUrl:e.target.value}))} placeholder="https://youtu.be/..."/></label>
+        <label>Audio eksternal<input type="url" value={draft.audioUrl||''} onChange={e=>setDraft(d=>({...d,audioUrl:e.target.value}))} placeholder="https://.../narasi.mp3"/></label>
+       </div>
+      </details>
+      <div className="question-editor-actions"><span>* Wajib diisi. Gambar dapat dipilih langsung dari perangkat; tekan Simpan Soal setelah unggah selesai.</span><button className="outline-button" onClick={()=>{setAdding(false);setDraft(emptyQuestion())}}>Batal</button><button className="big-primary" disabled={busy||adminImageUploading||draft.question.trim().length<6||draft.explanation.trim().length<5||draft.options.some(o=>!o.trim())||new Set(draft.options.map(x=>x.trim())).size!==4||!draft.options.includes(draft.answer)} onClick={submitQuestion}>{busy?'Menyimpan…':draft.id?'💾 Simpan Perubahan':'💾 Simpan Soal Baru'}</button></div>
      </div>}
      <div className="question-list-heading"><strong>{filteredQuestions.length} soal ditemukan</strong><button className="outline-button" disabled={busy} onClick={()=>refreshQuestions().then(()=>setNotice('Daftar soal terbaru berhasil dimuat.')).catch(e=>setError(e.message))}><RefreshCw size={14}/> Muat Ulang</button></div>
      <div className="question-list">
