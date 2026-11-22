@@ -62,3 +62,15 @@
 .teacher-question-empty p{color:#618594;font-size:12px;line-height:1.7;max-width:530px;margin:8px auto 14px}
 @media(max-width:960px){.teacher-question-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-question-form-grid.media{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:660px){.teacher-question-manager .teacher-heading{align-items:flex-start}.teacher-question-manager .teacher-link-actions{width:100%}.teacher-question-manager .teacher-link-actions>button{flex:1}.teacher-question-summary{gap:6px}.teacher-question-summary span{padding:7px 9px;font-size:11px}.teacher-question-filters{grid-template-columns:1fr;padding:12px}.teacher-question-form{padding:12px}.teacher-question-form-grid,.teacher-question-form-grid.media{grid-template-columns:1fr}.teacher-question-form-actions{flex-direction:column;align-items:stretch}.teacher-question-form-actions>*{width:100%}.teacher-question-list-head{flex-direction:column;align-items:flex-start}.teacher-question-preview{grid-template-columns:1fr}.teacher-question-item{padding:12px}.teacher-question-actions{justify-content:flex-start}.teacher-question-actions button{flex:1}}
+
+
+/* Shared image upload controls for both global Admin and grade-restricted Guru */
+.question-image-uploader{background:linear-gradient(140deg,#edf9ff,#f4fff3);border:2px dashed #8fcad8;border-radius:16px;padding:14px;display:grid;gap:12px;margin:7px 0}
+.question-image-uploader>label{display:flex;flex-direction:column;gap:9px;color:#285c86;font-size:13px;font-weight:900}
+.question-image-uploader input[type=file]{display:block;width:100%;padding:12px;border:2px dashed #badfe9;border-radius:12px;background:#fff;color:#2b668b;font-size:12px}
+.question-image-uploader input[type=file]::file-selector-button{background:#d8f3fd;border:1px solid #81c6d9;border-radius:8px;color:#23648a;font-weight:900;padding:8px 12px;margin-right:12px;cursor:pointer}
+.upload-image-status{color:#217f69;font-weight:900;font-size:12px}
+.question-image-preview{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.question-image-preview img{display:block;max-width:min(100%,360px);max-height:260px;object-fit:contain;border-radius:13px;border:2px solid #c4e3e9;background:#fff}
+.question-list-image{display:block;max-width:100%;width:auto;max-height:230px;object-fit:contain;border:2px solid #d1e4eb;background:#fbfdff;border-radius:13px;margin:12px 0}
+@media(max-width:600px){.question-image-uploader{padding:10px}.question-image-preview{flex-direction:column;align-items:flex-start}.question-image-preview img{width:100%}.question-image-preview button{width:100%}}
