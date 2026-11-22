@@ -3,6 +3,7 @@ import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronDown,ChevronRight,Compass,C
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
 import RoleGuide from './RoleGuide';
+import MathHelper from './MathHelper';
 import SuperAdminTeachers from './SuperAdminTeachers';
 import {uploadQuestionImage} from './uploadQuestionImage';
 import {uploadQuestionMedia,type OptionalMediaKind} from './uploadQuestionMedia';
@@ -235,6 +236,7 @@ export default function App(){
    {questions[questionIndex].imageUrl&&(/^(https:\/\/)/.test(questions[questionIndex].imageUrl!)||questions[questionIndex].imageUrl!.startsWith('/api/question-images/file/'))&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
    {questions[questionIndex].videoUrl&&(questions[questionIndex].videoUrl!.startsWith('/api/question-media/file/video/')?<video className="extra-media video" controls preload="metadata" src={questions[questionIndex].videoUrl!} aria-label="Video pendukung soal"/>:videoId(questions[questionIndex].videoUrl!)?<iframe className="extra-media video" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[questionIndex].videoUrl!)} title="Video pelajaran" allowFullScreen/>:null)}
    {questions[questionIndex].audioUrl&&(questions[questionIndex].audioUrl!.startsWith('/api/question-media/file/audio/')||questions[questionIndex].audioUrl!.startsWith('https://'))&&<audio controls preload="metadata" src={questions[questionIndex].audioUrl!}/>}
+   <MathHelper key={island+'-'+questionIndex} question={questions[questionIndex].question} topic={gradeTopics[chosenGrade]?.[island]||''} answered={Boolean(answer)}/>
    <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);quizSound(option===questions[questionIndex].answer);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
    {answer&&<div className="quiz-explanation"><b>{answer===questions[questionIndex].answer?'🎉 Hebat, jawabanmu benar!':'💡 Ayo pahami pembahasannya!'}</b><p>{questions[questionIndex].explanation}</p></div>}
    <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('');say('Pertanyaan berikutnya. '+questions[questionIndex+1].question)}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
