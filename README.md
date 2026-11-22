@@ -68,3 +68,29 @@ Mode `npm run dev` hanya menjalankan frontend Vite; endpoint server `/api/*` mem
 - Ekspor Excel memakai ExcelJS dan PDF memakai jsPDF; format dokumen sederhana.
 - Generator soal AI memerlukan kunci Ollama dan audit manual kebenaran butir.
 - Kode migrasi alternatif Cloudflare Workers/D1 masih **placeholder** pada `wrangler.jsonc`; deployment aktif ada di Vercel.
+
+
+## ⚙️ CRUD Bank Soal SD — dashboard administrator
+
+Masuk ke [Portal Admin](https://nusantara-math-advanture.vercel.app/admin), kemudian klik **Pengaturan Soal** setelah berhasil login.
+
+1. **Create:** klik **Tambah Soal Baru**, pilih **Kelas SD 1–6**, topik, dan pulau. Isi pertanyaan, empat pilihan A–D, kunci, pembahasan, status publikasi, dan URL media opsional. Klik **Simpan Soal Baru**.
+2. **Read:** cari soal menurut kelas, topik, pulau, atau kata kunci. Tersedia paging 12 soal/halaman dengan preview kunci, pembahasan, dan status.
+3. **Update:** klik **Edit Soal**, perbaiki isinya, kemudian klik **Simpan Perubahan**.
+4. **Delete:** klik **Hapus**, lalu konfirmasi **Ya, Hapus**. Penghapusan direkam dalam penyimpanan privat dan soal tak muncul lagi di kuis.
+5. **Soal dari AI:** pilih kelas, topik Kurikulum Merdeka, dan pulau pada Generator Soal AI; hasil valid dimasukkan ke bank sebagai soal yang dapat diedit/hapus.
+6. **Pengaturan Sumber Soal Per Kelas & Pulau:** pilih **Campuran: bank + soal otomatis** atau **Hanya Bank Soal Guru (CRUD)**. Pilih **Simpan Mode**. Dalam mode hanya bank, misi hanya berjalan jika ada sedikitnya satu soal aktif yang sesuai.
+7. **Impor 8 Soal Bawaan ke Bank** mengubah latihan otomatis untuk kelas/pulau pilihan menjadi delapan catatan tersimpan yang dapat diedit dan dihapus secara individual. Untuk menghindari soal otomatis muncul lagi setelah dihapus, pilih mode **Hanya Bank Soal Guru (CRUD)**.
+
+**Penyimpanan:** pertanyaan menggunakan objek terpisah `questions/<id>.json` di Vercel Blob privat, sehingga tambah/edit/hapus tidak menulis ulang seluruh bank. Soal lama dari `config/bank.json` tetap dapat dibaca, diedit, dan dihapus melalui overlay atau tombstone. Semua endpoint CRUD dilindungi sesi admin.
+
+Endpoint utama:
+- `GET /api/admin/questions`
+- `POST /api/admin/questions` (tambah)
+- `PUT /api/admin/questions/:id` (edit)
+- `DELETE /api/admin/questions/:id` (hapus)
+- `POST /api/admin/questions/bulk` (impor AI atau soal bawaan)
+- `PUT /api/admin/mission-config` (pilih sumber soal per kelas/pulau)
+- `GET /api/public/mission-config?grade=Kelas%201&culture=sumatra`
+
+**Penting:** sesi admin membutuhkan `ADMIN_PASSWORD` dan `SESSION_SECRET` pada Environment Variables Vercel, bukan pada frontend atau GitHub. Tanpa keduanya, login ditolak dan fitur CRUD tidak tersedia.
