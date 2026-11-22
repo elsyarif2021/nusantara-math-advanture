@@ -150,8 +150,8 @@ Tersedia pengujian integrasi penolakan akses Guru lain, verifikasi kelas yang di
 - **Guru:** `/guru` → login → **Bank Soal Kelas Saya** → **Tambah Soal** atau **Edit** → **Upload gambar soal dari HP / komputer**.
 - **Super Admin (bank global):** `/admin` → **Pengaturan Soal** → tambah/edit → pilih gambar.
 - **Super Admin (soal guru):** `/admin` → **Kelola Akun Guru & Kelas** → **Tautan & Soal** → edit/tambah soal guru → pilih gambar.
-- Pilih **JPG, PNG, atau WEBP**, maksimal **2 MB**. Setelah unggah, gambar ditampilkan sebagai **pratinjau**; tekan **Simpan Soal** untuk menautkannya ke soal. Pilih **Hapus gambar dari soal** jika tidak ingin menggunakannya.
-- Gambar muncul pada kuis siswa sesuai kelas, topik, dan pulau. URL gambar HTTPS eksternal juga masih dapat digunakan.
+- Pilih **JPG, PNG, atau WEBP** langsung dari galeri atau file di HP/laptop (maksimal **2 MB**). Tidak ada kolom URL gambar. Setelah unggah, gambar ditampilkan sebagai **pratinjau**; tekan **Simpan Soal** untuk menautkannya ke soal. Pilih **Hapus gambar dari soal** jika tidak ingin menggunakannya.
+- Gambar muncul pada kuis siswa sesuai kelas, topik, dan pulau. Soal lama dengan URL gambar HTTPS tetap dapat ditampilkan atau diperbarui melalui pilihan file. Media YouTube dan audio eksternal tetap tersimpan pada bagian opsional dan tidak perlu diisi untuk soal bergambar.
 - Gambar ditempatkan dalam Vercel Blob **privat** pada `question-images/<owner>/<uuid>.<ext>`. Aplikasi mengirim gambar melalui `GET /api/question-images/file/<owner>/<uuid>.<ext>` dengan tipe konten gambar dan tanpa HTML/SVG.
 - Upload `POST /api/question-images/upload` menggunakan cookie yang benar-benar terverifikasi server. Request JSON `{role:"teacher"|"superadmin",dataUrl:"data:image/...;base64,..."}`; pengguna tanpa sesi sah mendapat HTTP 401. Backend memeriksa isi file berdasarkan signature/magic bytes dan batas ukuran, bukan hanya ekstensi.
 - Identitas guru/role diambil dari sesi dan **tidak** dipercaya dari klaim ID guru di browser; media URL menggunakan UUID acak. Jalur gambar tidak menerima traversal atau MIME berbahaya.
