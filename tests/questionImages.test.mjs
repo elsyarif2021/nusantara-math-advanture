@@ -18,7 +18,7 @@ test('Accept only valid JPEG PNG and WEBP binaries matching their MIME types',()
  assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(png,'image/jpeg')}),/Isi file/);
  assert.throws(()=>parseQuestionImage({dataUrl:'data:image/svg+xml;base64,PHN2Zz4='}),/Pilih gambar/);
  assert.throws(()=>parseQuestionImage({dataUrl:'data:image/png;base64,AAAA'}),/Isi file/);
- assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(Buffer.alloc(MAX_QUESTION_IMAGE_BYTES+1),'image/png')}),/maksimal 2 MB/);
+ assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(Buffer.alloc(MAX_QUESTION_IMAGE_BYTES+1),'image/png')}),/2 MB/);
 });
 test('Image location is private-storage backed, strictly scoped and cannot traverse paths',()=>{
  const location=createQuestionImageLocation(owner,'image/png',imageId);
