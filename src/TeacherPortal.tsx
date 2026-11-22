@@ -88,10 +88,10 @@ export default function TeacherPortal({onHome,onAuthChange}:{onHome:()=>void;onA
    <div className="teacher-workspace">
     <div className="teacher-welcome"><div className="teacher-face">👩‍🏫</div><div><span className="teacher-role-tag">GURU · {teacher.username}</span><h2>Assalamu'alaikum, {teacher.name}! 👋</h2><p>Pilih satu menu untuk mulai bekerja.</p></div><button className="outline-button" onClick={logout}><LogOut size={16}/> Keluar</button></div>
     <nav className="role-nav" aria-label="Menu Portal Guru">
-     <button className={teacherTab==='classes'?'selected':''} onClick={()=>setTeacherTab('classes')} aria-current={teacherTab==='classes'?'page':undefined}><Link2 size={18}/> Kelas & Link</button>
-     <button className={teacherTab==='questions'?'selected':''} onClick={()=>setTeacherTab('questions')} aria-current={teacherTab==='questions'?'page':undefined}><BookOpen size={18}/> Bank Soal</button>
-     <button className={teacherTab==='students'?'selected':''} onClick={()=>setTeacherTab('students')} aria-current={teacherTab==='students'?'page':undefined}><Users size={18}/> Pantau Siswa</button>
-     <button className={teacherTab==='account'?'selected':''} onClick={()=>setTeacherTab('account')} aria-current={teacherTab==='account'?'page':undefined}><KeyRound size={18}/> Akun</button>
+     <button data-guide="teacher-links" className={teacherTab==='classes'?'selected':''} onClick={()=>setTeacherTab('classes')} aria-current={teacherTab==='classes'?'page':undefined}><Link2 size={18}/> Kelas & Link</button>
+     <button data-guide="teacher-questions" className={teacherTab==='questions'?'selected':''} onClick={()=>setTeacherTab('questions')} aria-current={teacherTab==='questions'?'page':undefined}><BookOpen size={18}/> Bank Soal</button>
+     <button data-guide="teacher-students" className={teacherTab==='students'?'selected':''} onClick={()=>setTeacherTab('students')} aria-current={teacherTab==='students'?'page':undefined}><Users size={18}/> Pantau Siswa</button>
+     <button data-guide="teacher-account" className={teacherTab==='account'?'selected':''} onClick={()=>setTeacherTab('account')} aria-current={teacherTab==='account'?'page':undefined}><KeyRound size={18}/> Akun</button>
     </nav>
     {teacherTab==='students'&&<div className="teacher-metrics"><div><Users/><strong>{students.length}</strong><small>Siswa terpantau</small></div><div><Link2/><strong>{links.filter(l=>l.active).length}</strong><small>Tautan aktif</small></div><div><BookOpen/><strong>{students.reduce((n,s)=>n+(s.gamesPlayed||0),0)}</strong><small>Latihan siswa</small></div></div>}
     {teacherTab==='classes'&&<section className="teacher-panel"><div className="teacher-heading"><div><h2>🔗 Buat Tautan Kelas Siswa</h2><p>Setiap guru mendapat tautan unik untuk setiap kelas/kelompok. Siswa cukup mengisi nama tanpa PIN.</p></div></div>
