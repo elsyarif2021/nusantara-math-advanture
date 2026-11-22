@@ -9,7 +9,7 @@ for(const [file,uploadMethod] of [
 ]){
  test(file+': accepts an image file directly from device without an editable URL field',()=>{
   const source=read(file);
-  assert.match(source,/type="file" accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(source,/type="file" accept="image\/jpeg,image\/png,image\/webp,image\/gif,image\/avif,image\/bmp,[^"]*\.jpg[^"]*\.jpeg[^"]*\.png[^"]*\.gif[^"]*"/);
   assert.match(source,new RegExp('void '+uploadMethod+'\\('));
   assert.match(source,/question-image-preview/);
   assert.match(source,/Hapus gambar dari soal/);
