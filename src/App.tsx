@@ -3,6 +3,7 @@ import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronRight,Compass,Crown,Downloa
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
 import SuperAdminTeachers from './SuperAdminTeachers';
+import {uploadQuestionImage} from './uploadQuestionImage';
 import './teacher.css';
 import {quizSound} from './sounds';
 import {gradeTopics,grades,islandData,makeMission,topicChips,type Question,type Student,type SchoolConfig} from './learning';
@@ -30,6 +31,7 @@ export default function App(){
  const[admin,setAdmin]=useState(false),[password,setPassword]=useState(''),[students,setStudents]=useState<Student[]>([]),[bank,setBank]=useState<Question[]>([]);
  const[filter,setFilter]=useState('Semua'),[query,setQuery]=useState(''),[draft,setDraft]=useState<Question>(()=>emptyQuestion()),[adding,setAdding]=useState(false);
  const[questionGrade,setQuestionGrade]=useState('Semua'),[questionTopic,setQuestionTopic]=useState('Semua'),[questionSearch,setQuestionSearch]=useState(''),[questionRegion,setQuestionRegion]=useState('Semua'),[confirmDelete,setConfirmDelete]=useState<string|null>(null),[questionPage,setQuestionPage]=useState(1);
+ const[adminImageUploading,setAdminImageUploading]=useState(false);
  const[modeGrade,setModeGrade]=useState('Kelas 1'),[modeCulture,setModeCulture]=useState('sumatra'),[modeValue,setModeValue]=useState<'mixed'|'manual'>('mixed'),[modeLoading,setModeLoading]=useState(false);
  const[aiGrade,setAiGrade]=useState('Kelas 1'),[aiTopic,setAiTopic]=useState(gradeTopics['Kelas 1'][0]),[aiRegion,setAiRegion]=useState('Sumatra'),[aiBusy,setAiBusy]=useState(false);
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false);
@@ -114,6 +116,11 @@ export default function App(){
  async function refreshQuestions(){const result=await api('admin/questions');setBank(result.questions||[]);return result.questions as Question[]}
  function openNewQuestion(){const grade=questionGrade==='Semua'?'Kelas 1':questionGrade;setDraft(emptyQuestion(grade));setConfirmDelete(null);setAdding(true);setTimeout(()=>document.getElementById('soal-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
  function editQuestion(q:Question){setDraft({...q,grade:q.grade||'Kelas 1',topic:gradeTopics[q.grade||'Kelas 1']?.includes(q.topic||'')?q.topic:gradeTopics[q.grade||'Kelas 1']?.[0]||'',cultureId:q.cultureId||'sumatra',options:[...q.options],active:q.active!==false});setAdding(true);setConfirmDelete(null);setTimeout(()=>document.getElementById('soal-editor')?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
+ async function onAdminPickImage(file?:File){
+  if(!file)return;
+  setAdminImageUploading(true);setError('');
+  try{const url=await uploadQuestionImage(file,'superadmin');setDraft(d=>({...d,imageUrl:url}));setNotice('Gambar berhasil diunggah. Tekan Simpan Soal untuk menerapkannya.')}catch(e:any){setError(e.message)}finally{setAdminImageUploading(false)}
+ }
  async function submitQuestion(){setBusy(true);setError('');try{
   const isEdit=Boolean(draft.id),path=isEdit?'admin/questions/'+encodeURIComponent(draft.id!):'admin/questions';
   await api(path,{method:isEdit?'PUT':'POST',body:JSON.stringify({question:draft})});
@@ -196,7 +203,7 @@ export default function App(){
   {view==='pencapaian'&&<main className="inner-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Beranda</button><span className="section-tag">⭐ KOLEKSI PENGHARGAAN</span><h1>Galeri Pencapaian</h1><p>{student?'Selamat, '+student.name+'! Lihat bintang dan lencana yang telah kamu peroleh.':'Masuk untuk menyimpan pencapaian petualanganmu.'}</p><div className="achievement-grid">{[0,1,2,3,4,5,6].map(i=><div key={i} className={!student?.completed.includes(i+1)?'locked':''}><span className="big-emoji">{student?.completed.includes(i+1)?'🌟':'🔒'}</span><b>{islandData[i].name}</b><small>{student?.completed.includes(i+1)?'Misi selesai!':'Belum dijelajahi'}</small></div>)}</div>{student?<div className="profile-buttons"><button className="big-primary" onClick={certificate}><Download size={17}/> Unduh Sertifikat PDF</button><button onClick={signout} className="outline-button"><LogOut size={16}/> Keluar Profil</button></div>:<button className="big-primary" onClick={()=>setModal(true)}>Masuk Sekarang</button>}</main>}
   {view==='quiz'&&questions.length>0&&<main className="quiz-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke Peta</button><div className="quiz-heading"><div><span>🧭 MISI PULAU {islandData[island].name.toUpperCase()}</span><h1>{gradeTopics[chosenGrade][island]}</h1><p>Kenali budaya {islandData[island].name}, selesaikan soal, kumpulkan bintang!</p></div><div className="round-badge">⭐ {correct} benar</div></div><div className="quiz-track"><div style={{width:((questionIndex+1)/questions.length*100)+'%'}}/></div>
    <div className="quiz-columns"><section className="quiz-scene"><CultureArt id={islandData[island].id}/><h2>🌺 Tahukah Kamu?</h2><p>{islandData[island].fact}</p><div className="info-tip">🎓 Selesaikan {questions.length} soal untuk mendapat hadiah XP dan bintang.</div></section><section className="quiz-paper"><div className="quiz-top"><span>SOAL {questionIndex+1} DARI {questions.length}</span><span>{chosenGrade}</span></div><h2>{questions[questionIndex].question}</h2>
-   {questions[questionIndex].imageUrl&&/^https:\/\//.test(questions[questionIndex].imageUrl!)&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
+   {questions[questionIndex].imageUrl&&(/^(https:\/\/)/.test(questions[questionIndex].imageUrl!)||questions[questionIndex].imageUrl!.startsWith('/api/question-images/file/'))&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
    {questions[questionIndex].videoUrl&&videoId(questions[questionIndex].videoUrl!)&&<iframe className="extra-media video" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[questionIndex].videoUrl!)} title="Video pelajaran" allowFullScreen/>}
    {questions[questionIndex].audioUrl&&/^https:\/\//.test(questions[questionIndex].audioUrl!)&&<audio controls src={questions[questionIndex].audioUrl}/>}
    <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);quizSound(option===questions[questionIndex].answer);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
@@ -259,12 +266,19 @@ export default function App(){
       </div></div>
       <label>Kunci jawaban *<select value={draft.answer} onChange={e=>setDraft(d=>({...d,answer:e.target.value}))}><option value="">Pilih kunci jawaban</option>{draft.options.map((v,i)=><option key={i} value={v} disabled={!v.trim()}>{String.fromCharCode(65+i)} — {v||'(belum diisi)'}</option>)}</select></label>
       <label>Pembahasan *<textarea rows={3} value={draft.explanation} maxLength={1800} onChange={e=>setDraft(d=>({...d,explanation:e.target.value}))} placeholder="Jelaskan langkah perhitungan dan alasan jawaban benar…"/></label>
+      <div className="question-image-uploader">
+       <label>🖼️ Upload gambar soal dari HP/laptop (JPG, PNG, WEBP · maks. 2 MB)
+        <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||adminImageUploading} onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void onAdminPickImage(file);e.currentTarget.value=''}}/>
+       </label>
+       {adminImageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar soal…</span>}
+       {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal" loading="lazy"/><button className="outline-button" onClick={()=>setDraft(d=>({...d,imageUrl:''}))} disabled={adminImageUploading}>Hapus gambar dari soal</button></div>}
+      </div>
       <div className="question-fields three">
-       <label>URL gambar HTTPS<input type="url" value={draft.imageUrl||''} onChange={e=>setDraft(d=>({...d,imageUrl:e.target.value}))} placeholder="https://.../gambar.png"/></label>
+       <label>Alamat gambar HTTPS / otomatis setelah upload<input type="text" value={draft.imageUrl||''} onChange={e=>setDraft(d=>({...d,imageUrl:e.target.value}))} placeholder="https://.../gambar.png"/></label>
        <label>URL YouTube<input type="url" value={draft.videoUrl||''} onChange={e=>setDraft(d=>({...d,videoUrl:e.target.value}))} placeholder="https://youtu.be/..."/></label>
        <label>URL audio HTTPS<input type="url" value={draft.audioUrl||''} onChange={e=>setDraft(d=>({...d,audioUrl:e.target.value}))} placeholder="https://.../narasi.mp3"/></label>
       </div>
-      <div className="question-editor-actions"><span>* Wajib diisi. Gambar budaya otomatis mengikuti pulau, sementara URL media bersifat opsional.</span><button className="outline-button" onClick={()=>{setAdding(false);setDraft(emptyQuestion())}}>Batal</button><button className="big-primary" disabled={busy||draft.question.trim().length<6||draft.explanation.trim().length<5||draft.options.some(o=>!o.trim())||new Set(draft.options.map(x=>x.trim())).size!==4||!draft.options.includes(draft.answer)} onClick={submitQuestion}>{busy?'Menyimpan…':draft.id?'💾 Simpan Perubahan':'💾 Simpan Soal Baru'}</button></div>
+      <div className="question-editor-actions"><span>* Wajib diisi. Gambar budaya otomatis mengikuti pulau, sementara URL media bersifat opsional.</span><button className="outline-button" onClick={()=>{setAdding(false);setDraft(emptyQuestion())}}>Batal</button><button className="big-primary" disabled={busy||adminImageUploading||draft.question.trim().length<6||draft.explanation.trim().length<5||draft.options.some(o=>!o.trim())||new Set(draft.options.map(x=>x.trim())).size!==4||!draft.options.includes(draft.answer)} onClick={submitQuestion}>{busy?'Menyimpan…':draft.id?'💾 Simpan Perubahan':'💾 Simpan Soal Baru'}</button></div>
      </div>}
      <div className="question-list-heading"><strong>{filteredQuestions.length} soal ditemukan</strong><button className="outline-button" disabled={busy} onClick={()=>refreshQuestions().then(()=>setNotice('Daftar soal terbaru berhasil dimuat.')).catch(e=>setError(e.message))}><RefreshCw size={14}/> Muat Ulang</button></div>
      <div className="question-list">
@@ -273,6 +287,7 @@ export default function App(){
        <h3>{q.question}</h3>
        <div className="question-option-preview">{q.options.map((x,j)=><span key={j} className={q.answer===x?'correct':''}><b>{String.fromCharCode(65+j)}.</b> {x}{q.answer===x?' ✓':''}</span>)}</div>
        <div className="question-answer-note"><b>Pembahasan:</b> {q.explanation}</div>
+       {q.imageUrl&&<img className="question-list-image" src={q.imageUrl} alt="Gambar pendukung soal" loading="lazy"/>}
        <div className="question-media-links">{q.imageUrl&&<span>🖼️ Gambar</span>}{q.videoUrl&&<span>🎬 Video</span>}{q.audioUrl&&<span>🔊 Audio</span>}</div>
        <div className="question-manage-actions"><button className="outline-button" disabled={busy} onClick={()=>editQuestion(q)}>✏️ Edit Soal</button>{confirmDelete===q.id?<div className="delete-confirm"><strong>Hapus soal ini?</strong><button className="danger-button" disabled={busy} onClick={()=>deleteQuestion(q)}>Ya, Hapus</button><button className="outline-button" onClick={()=>setConfirmDelete(null)}>Batal</button></div>:<button className="danger-outline" disabled={busy||!q.id} onClick={()=>setConfirmDelete(q.id||null)}>🗑️ Hapus</button>}</div>
       </article>)}
