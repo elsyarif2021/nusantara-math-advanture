@@ -38,19 +38,34 @@ export default function App(){
  const daily=student?.recent.some(x=>new Date(x.date).toDateString()===new Date().toDateString())??false;
  const sample=islandData[0];
  const gradeIndex=Number(chosenGrade.replace('Kelas ','')),profileGrade=student?.grade??chosenGrade;
- useEffect(()=>{api('school').then((r)=>setSchool(r.school)).catch(()=>{});
-  const token=pathJoinToken();
-  if(isJoinPath()){
-   if(!token){setInviteStatus('invalid');setError('Alamat kelas tidak valid. Mintalah tautan baru dari guru.');return}
-   api('invite/'+token).then(r=>{setInvite(r.invite);setInviteStatus('valid');setChosenGrade(r.invite.grade);setModal(true);setNotice('Tautan kelas '+r.invite.label+' dari '+r.invite.teacherName+' berhasil dibuka.');}).catch(e=>{setInviteStatus('invalid');setError(e.message)});
+ useEffect(()=>{
+  let cancelled=false;
+  api('school').then(r=>{if(!cancelled)setSchool(r.school)}).catch(()=>{});
+  async function restore(){
+   const token=pathJoinToken(),join=isJoinPath();
+   if(join){
+    if(!token){if(!cancelled){setInviteStatus('invalid');setError('Alamat kelas tidak valid. Mintalah tautan baru dari guru.')}return}
+    try{
+     const r=await api('invite/'+token);
+     if(cancelled)return;
+     setInvite(r.invite);setInviteStatus('valid');setChosenGrade(r.invite.grade);
+    }catch(e:any){if(!cancelled){setInviteStatus('invalid');setError(e.message)}return}
+   }
+   const saved=localStorage.getItem('nma-student-id'),savedToken=localStorage.getItem('nma-student-invite');
+   let restored=false;
+   if(saved&&/^[a-f0-9]{32}$/.test(saved)&&(!join||savedToken===token)){
+    try{
+     const r=await api('progress/'+saved);
+     if(cancelled)return;
+     if(r.progress&&grades.includes(r.progress.grade)&&(!token||r.progress.inviteToken===token)){
+      setStudent(r.progress);setName(r.progress.name);setChosenGrade(r.progress.grade);restored=true;
+     }else if(!join)localStorage.removeItem('nma-student-id');
+    }catch{}
+   }
+   if(join&&!cancelled){setModal(!restored);if(!restored)setNotice('Masuk ke kelas gurumu menggunakan nama, tanpa PIN.')}
   }
-  const saved=localStorage.getItem('nma-student-id'),savedToken=localStorage.getItem('nma-student-invite');
-  if(isJoinPath()&&savedToken!==token)return;
-  if(saved&&/^[a-f0-9]{32}$/.test(saved))api('progress/'+saved).then((r)=>{
-   if(r.progress&&grades.includes(r.progress.grade)&&(!token||r.progress.inviteToken===token)){
-    setStudent(r.progress);setName(r.progress.name);setChosenGrade(r.progress.grade);if(token)setModal(false);
-   }else if(!token)localStorage.removeItem('nma-student-id');
-  }).catch(()=>{});
+  restore();
+  return()=>{cancelled=true};
  },[]);
  useEffect(()=>{if(!audioRef.current)return;if(music)audioRef.current.play().catch(()=>{setMusic(false);setNotice('Musik belum tersedia. Narasi suara tetap bisa digunakan.');});else audioRef.current.pause()},[music]);
  useEffect(()=>{if(view!=='admin'||!admin)return;loadAdmin();const timer=setInterval(loadAdmin,8000);return()=>clearInterval(timer)},[view,admin]);
