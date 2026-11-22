@@ -21,7 +21,7 @@ test('Accept common JPEG PNG WEBP GIF AVIF BMP with magic-byte validation',()=>{
  assert.equal(parseQuestionImage({dataUrl:dataUrl(jpeg,'image/jpg')}).contentType,'image/jpeg');
  assert.equal(parseQuestionImage({dataUrl:dataUrl(bmp,'image/x-ms-bmp')}).contentType,'image/bmp');
  assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(png,'image/jpeg')}),/Isi file/);
- assert.throws(()=>parseQuestionImage({dataUrl:'data:image/svg+xml;base64,PHN2Zz4='}),/Pilih gambar/);
+ assert.throws(()=>parseQuestionImage({dataUrl:'data:image/svg+xml;base64,PHN2Zz4='}),/Gunakan gambar/);
  assert.throws(()=>parseQuestionImage({dataUrl:'data:image/png;base64,AAAA'}),/Isi file/);
  assert.throws(()=>parseQuestionImage({dataUrl:dataUrl(Buffer.alloc(MAX_QUESTION_IMAGE_BYTES+1),'image/png')}),/2 MB/);
 });
