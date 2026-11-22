@@ -31,11 +31,11 @@ test('all role guides explain their actual work: island map, class link, questio
 test('highlight targets correspond to actual navigation elements, and reduce motion is respected',()=>{
  for(const name of ['teacher-links','teacher-questions','teacher-students','teacher-account']){
   assert.ok(teacher.includes('data-guide="'+name+'"'),name+' missing on teacher menu');
-  assert.ok(guide.includes('data-guide=\\"'+name+'\\"'),name+' missing from guide target');
+  assert.ok(guide.includes('data-guide="'+name+'"'),name+' missing from guide target');
  }
  for(const name of ['admin-teachers','admin-questions','admin-students','admin-settings']){
   assert.ok(app.includes('data-guide="'+name+'"'),name+' missing on admin menu');
-  assert.ok(guide.includes('data-guide=\\"'+name+'\\"'),name+' missing from guide target');
+  assert.ok(guide.includes('data-guide="'+name+'"'),name+' missing from guide target');
  }
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/\.nma-guide-spotlight/);
