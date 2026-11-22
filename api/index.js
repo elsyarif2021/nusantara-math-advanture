@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import {get,put,list} from '@vercel/blob';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
+import {handleTeacherRoutes} from './teacherRoutes.js';
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
@@ -22,7 +23,8 @@ export default async function handler(req,res){
  if(path==='health'&&method==='GET')return send(res,200,{ok:true,storage:storeReady(),admin:adminReady(),platform:'vercel'});
  if(!storeReady())return send(res,503,{error:'Penyimpanan belum diaktifkan. Hubungkan private Vercel Blob ke proyek ini.'});
  try{
-  if(path==='admin/session'&&method==='GET')return send(res,200,{user:isAdmin(req)?{name:'Administrator',role:'admin'}:null});
+  if(await handleTeacherRoutes({path,method,req,res,send,read,write,list,isAdmin}))return;
+  if(path==='admin/session'&&method==='GET')return send(res,200,{user:isAdmin(req)?{name:'Super Admin',role:'super_admin'}:null});
   if(path==='admin/login'&&method==='POST'){
    if(!adminReady())return send(res,503,{error:'ADMIN_PASSWORD dan SESSION_SECRET belum disetel di Vercel.'});
    const ip=String(req.headers['x-forwarded-for']||'unknown').split(',')[0];const key='security/'+crypto.createHash('sha256').update(ip+process.env.SESSION_SECRET).digest('hex')+'.json';
@@ -36,12 +38,19 @@ export default async function handler(req,res){
    await write(key,{count:0,expires:0});
    const value=String(Date.now()+28800000)+'.'+crypto.randomBytes(16).toString('hex');
    res.setHeader('Set-Cookie','nma_admin='+value+'.'+sign(value)+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=28800');
-   return send(res,200,{user:{name:'Administrator',role:'admin'}});
+   return send(res,200,{user:{name:'Super Admin',role:'super_admin'}});
   }
   if(path==='admin/logout'&&method==='POST'){res.setHeader('Set-Cookie','nma_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true})}
   if(path==='admin/monitor'&&method==='GET'){
    if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
-   const blobs=await list({prefix:'students/',limit:300});const profiles=(await Promise.all(blobs.blobs.map(b=>read(b.pathname).catch(()=>null)))).filter(Boolean);
+   const paths=[];let cursor;
+   do{
+    const page=await list({prefix:'students/',limit:300,...cursor?{cursor}:{}});
+    paths.push(...(page.blobs||[]).filter(b=>b.pathname.endsWith('.json')).map(b=>b.pathname));
+    if(paths.length>10000)return send(res,409,{error:'Terlalu banyak data siswa untuk pemantauan saat ini.'});
+    cursor=page.hasMore?page.cursor:null;
+   }while(cursor);
+   const profiles=[];for(let i=0;i<paths.length;i+=30){const data=await Promise.all(paths.slice(i,i+30).map(p=>read(p).catch(()=>null)));profiles.push(...data.filter(Boolean));}
    profiles.sort((a,b)=>Date.parse(b.updatedAt||0)-Date.parse(a.updatedAt||0));
    return send(res,200,{students:profiles,studentCount:profiles.length,updatedAt:new Date().toISOString()});
   }
@@ -152,7 +161,7 @@ export default async function handler(req,res){
     if(!old&&(p.gamesPlayed!==0||p.xp!==0||p.completed.length!==0||p.recent.length!==0))return send(res,409,{error:'Profil baru wajib dimulai dengan progres kosong'});
     if(old&&(p.gamesPlayed!==old.gamesPlayed+1||p.xp<old.xp||p.xp-old.xp>300||p.completed.length<old.completed.length||p.completed.length>old.completed.length+1))return send(res,409,{error:'Lompatan progres tidak valid'});
     if(old&&(p.recent.length===0||!Number.isInteger(p.recent.at(-1)?.total)||p.recent.at(-1)?.total<1||p.recent.at(-1)?.total>8||p.recent.at(-1)?.score<0||p.recent.at(-1)?.score>8))return send(res,409,{error:'Hasil latihan tidak valid'});
-    const progress={id,name:p.name.trim(),grade:p.grade,completed:[...new Set(p.completed)],xp:p.xp,gamesPlayed:p.gamesPlayed,recent:p.recent.slice(-25),updatedAt:new Date().toISOString()};
+    const progress={id,name:p.name.trim(),grade:p.grade,completed:[...new Set(p.completed)],xp:p.xp,gamesPlayed:p.gamesPlayed,recent:p.recent.slice(-25),teacherId:old?.teacherId||null,inviteToken:old?.inviteToken||null,updatedAt:new Date().toISOString()};
     await write('students/'+id+'.json',progress);
     return send(res,200,{saved:true,progress});
    }
