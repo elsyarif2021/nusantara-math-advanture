@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 import {idTeacherOK,tokenInviteOK,gradeOK,usernameOK,validateTeacher,hashPassword,verifyPassword,makeTeacherSession,verifyTeacherSession,isStudentOwnedByTeacher,validateInviteConfig,allowJoin} from './teacherAuth.js';
+import {questionIdOK} from './questionBank.js';
+import {readTeacherQuestions,teacherQuestionPath,prepareTeacherQuestion} from './teacherQuestions.js';
 
 const MAX_TEACHERS=150,MAX_LINKS=1500,MAX_STUDENTS=10000;
 const cookieOf=req=>Object.fromEntries(String(req.headers.cookie||'').split(';').map(x=>x.trim().split('=')).filter(x=>x.length>=2));
@@ -146,6 +148,42 @@ export async function handleTeacherRoutes({path,method,req,res,send,read,write,l
   const updated={...old,active:req.body.active,updatedAt:new Date().toISOString()};
   await write('invites/'+token+'.json',updated);
   send(res,200,{saved:true,link:updated});return true;
+ }
+ if(path==='teacher/questions'||path.startsWith('teacher/questions/')){
+  const teacher=await resolveTeacher(req,scope);
+  if(!teacher){send(res,401,{error:'Masuk sebagai Guru untuk mengelola soal.'});return true}
+  const ownedLinks=(await links(scope)).filter(l=>l.teacherId===teacher.id);
+  const allowedGrades=new Set(ownedLinks.map(l=>l.grade).filter(gradeOK));
+  if(path==='teacher/questions'&&method==='GET'){
+   const all=await readTeacherQuestions(teacher.id,scope);
+   send(res,200,{questions:all,total:all.length,allowedGrades:[...allowedGrades]});return true;
+  }
+  if(path==='teacher/questions'&&method==='POST'){
+   let data;try{data=prepareTeacherQuestion(req.body?.question,teacher.id,allowedGrades)}catch(e){send(res,400,{error:e.message});return true}
+   const all=await readTeacherQuestions(teacher.id,scope);
+   if(all.length>=500){send(res,409,{error:'Bank soal guru maksimal 500 soal. Hapus soal lama yang tidak digunakan.'});return true}
+   const id='q-'+crypto.randomUUID(),now=new Date().toISOString(),question={...data,id,createdAt:now,updatedAt:now};
+   await write(teacherQuestionPath(teacher.id,id),question);
+   send(res,201,{saved:true,question});return true;
+  }
+  if(path.startsWith('teacher/questions/')){
+   const id=path.slice('teacher/questions/'.length);
+   if(!questionIdOK(id)||!id.startsWith('q-')){send(res,400,{error:'ID soal tidak valid.'});return true}
+   const key=teacherQuestionPath(teacher.id,id);
+   const existing=await read(key);
+   if(!existing||existing.deleted||existing.teacherId!==teacher.id){send(res,404,{error:'Soal bukan milik guru ini atau sudah dihapus.'});return true}
+   if(method==='PUT'){
+    let data;try{data=prepareTeacherQuestion(req.body?.question,teacher.id,allowedGrades)}catch(e){send(res,400,{error:e.message});return true}
+    const question={...data,id,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    await write(key,question);
+    send(res,200,{saved:true,question});return true;
+   }
+   if(method==='DELETE'){
+    await write(key,{id,teacherId:teacher.id,deleted:true,updatedAt:new Date().toISOString()});
+    send(res,200,{deleted:true,id});return true;
+   }
+  }
+  send(res,405,{error:'Metode Bank Soal Guru tidak tersedia.'});return true;
  }
  if(path==='teacher/monitor'&&method==='GET'){
   const teacher=await resolveTeacher(req,scope);
