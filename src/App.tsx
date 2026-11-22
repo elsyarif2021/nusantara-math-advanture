@@ -96,7 +96,7 @@ export default function App(){
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  function signout(){localStorage.removeItem('nma-student-id');localStorage.removeItem('nma-student-invite');setStudent(null);setName('');setMusic(false);navigate('home')}
  async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
- try{const [r,config]=await Promise.all([api('public/questions?grade='+encodeURIComponent(s.grade)),api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+islandData[i].id)]);const topic=gradeTopics[s.grade][i];
+ try{const [r,config]=await Promise.all([api('public/questions?grade='+encodeURIComponent(s.grade)+(s.inviteToken?'&token='+encodeURIComponent(s.inviteToken):'')),api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+islandData[i].id)]);const topic=gradeTopics[s.grade][i];
   const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===islandData[i].id));
   const qs=config.mode==='manual'?fromBank.slice(0,8):[...fromBank.slice(0,3),...makeMission(s.grade,i,8)].slice(0,8);
   if(qs.length<1)throw Error('Belum ada soal aktif untuk '+s.grade+' di '+islandData[i].name+'. Hubungi guru untuk mengisi Bank Soal.');
