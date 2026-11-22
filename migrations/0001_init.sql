@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS progress (id TEXT PRIMARY KEY, record TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, record TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS sessions_updated ON sessions(updated_at);
+CREATE TABLE IF NOT EXISTS admin_attempts (id TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
