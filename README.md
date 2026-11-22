@@ -129,3 +129,16 @@ Aplikasi memakai **tiga peran dengan autentikasi dan ruang data terpisah**:
 Endpoint role baru: `/api/admin/teachers`, `/api/teacher/login`, `/api/teacher/session`, `/api/teacher/links`, `/api/teacher/monitor`, `/api/invite/:token`, `/api/enroll`.
 
 Tes isolasi peran: `npm test` memeriksa akun guru yang terpisah, dua tautan milik guru berbeda, pembatasan daftar siswa, penolakan pengelolaan guru oleh cookie Guru, penutupan tautan, serta pencabutan sesi.
+
+
+### CRUD Bank Soal Guru berdasarkan kelas
+
+**Guru:** buka `/guru` → buat sekurangnya satu tautan kelas → **📚 Bank Soal Kelas Saya**. Guru dapat **menambah, melihat, mengubah, menghapus**, dan mengaktifkan/menonaktifkan soal sesuai kelas yang memiliki tautan. Setiap soal berisi kelas SD 1–6, topik terkurasi, pulau budaya, teks soal, **empat opsi A–D**, kunci, pembahasan, dan tautan HTTPS untuk gambar/audio/YouTube (opsional). Hapus soal membutuhkan konfirmasi. Bank soal milik guru disimpan secara terpisah pada private Blob `teacher-questions/<teacherId>/<questionId>.json`.
+
+**Pembatasan akses di server:** operasi `POST/PUT/DELETE /api/teacher/questions` memerlukan sesi Guru yang valid; kelas diperiksa terhadap tautan milik Guru tersebut. ID Guru diperoleh dari cookie bertanda tangan server, bukan dikirim oleh browser. Edit dan hapus memuat berkas hanya dari prefix Guru pemilik; Guru A tidak bisa mengubah milik Guru B meskipun sama-sama Kelas 1.
+
+**Super Admin:** `/admin` → **Kelola Akun Guru** → pilih **Tautan & Soal** pada guru bersangkutan. Super Admin dapat melihat, menambah, mengedit, dan menghapus bank soal guru itu. Endpoint `/api/admin/teacher-questions` dilindungi sesi Super Admin.
+
+**Kuis siswa:** siswa yang masuk dari `/gabung/<token>` memperoleh soal milik Guru penanggung jawab kelas itu, disaring berdasarkan kelas, topik, pulau, dan status aktif. Soal Guru diutamakan sebelum soal global/soal otomatis; seluruh soal tersimpan berpeluang dipakai, bukan hanya tiga pertama. Soal Guru lain **tidak ditampilkan** kepada siswa kelas tersebut.
+
+Tersedia pengujian integrasi penolakan akses Guru lain, verifikasi kelas yang dikelola, status publikasi, pembuatan/edit/penghapusan oleh Super Admin, dan pemilihan soal untuk siswa melalui `npm test`.
