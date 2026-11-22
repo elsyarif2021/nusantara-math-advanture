@@ -149,6 +149,45 @@ export async function handleTeacherRoutes({path,method,req,res,send,read,write,l
   await write('invites/'+token+'.json',updated);
   send(res,200,{saved:true,link:updated});return true;
  }
+ if(path==='admin/teacher-questions'||path.startsWith('admin/teacher-questions/')){
+  if(!isAdmin(req)){send(res,401,{error:'Hanya Super Admin dapat mengelola soal guru.'});return true}
+  const rawId=path==='admin/teacher-questions'?(method==='GET'?req.query.teacherId:req.body?.teacherId):path.slice('admin/teacher-questions/'.length).split('/')[0];
+  const teacherId=String(rawId||'');
+  if(!idTeacherOK(teacherId)){send(res,400,{error:'ID guru tidak valid.'});return true}
+  const target=await read('teachers/'+teacherId+'.json');
+  if(!target){send(res,404,{error:'Akun guru tidak ditemukan.'});return true}
+  const owned=(await links(scope)).filter(l=>l.teacherId===teacherId);
+  const allowed=new Set(owned.map(l=>l.grade).filter(gradeOK));
+  if(path==='admin/teacher-questions'&&method==='GET'){
+   const all=await readTeacherQuestions(teacherId,scope);
+   send(res,200,{teacher:safeTeacher(target),questions:all,total:all.length,allowedGrades:[...allowed]});return true;
+  }
+  if(path==='admin/teacher-questions'&&method==='POST'){
+   let data;try{data=prepareTeacherQuestion(req.body?.question,teacherId,allowed)}catch(e){send(res,400,{error:e.message});return true}
+   const existing=await readTeacherQuestions(teacherId,scope);
+   if(existing.length>=500){send(res,409,{error:'Bank guru telah mencapai 500 soal.'});return true}
+   const id='q-'+crypto.randomUUID(),now=new Date().toISOString();
+   const question={...data,id,createdAt:now,updatedAt:now};
+   await write(teacherQuestionPath(teacherId,id),question);
+   send(res,201,{saved:true,question});return true;
+  }
+  if(path.startsWith('admin/teacher-questions/')){
+   const parts=path.split('/');
+   if(parts.length!==4||!questionIdOK(parts[3])||!parts[3].startsWith('q-')){send(res,400,{error:'ID soal tidak valid.'});return true}
+   const key=teacherQuestionPath(teacherId,parts[3]),old=await read(key);
+   if(!old||old.deleted||old.teacherId!==teacherId){send(res,404,{error:'Soal guru tidak ditemukan.'});return true}
+   if(method==='PUT'){
+    let data;try{data=prepareTeacherQuestion(req.body?.question,teacherId,allowed)}catch(e){send(res,400,{error:e.message});return true}
+    const question={...data,id:old.id,createdAt:old.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+    await write(key,question);send(res,200,{saved:true,question});return true;
+   }
+   if(method==='DELETE'){
+    await write(key,{id:old.id,teacherId,deleted:true,updatedAt:new Date().toISOString()});
+    send(res,200,{deleted:true,id:old.id});return true;
+   }
+  }
+  send(res,405,{error:'Metode Admin Bank Soal Guru tidak didukung.'});return true;
+ }
  if(path==='teacher/questions'||path.startsWith('teacher/questions/')){
   const teacher=await resolveTeacher(req,scope);
   if(!teacher){send(res,401,{error:'Masuk sebagai Guru untuk mengelola soal.'});return true}
