@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {get,put,list} from '@vercel/blob';
+import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
@@ -15,7 +16,7 @@ function studentOK(p,id){return p&&p.id===id&&typeof p.name==='string'&&p.name.t
 const pathname=req=>{let s=req.query.path??'';if(Array.isArray(s))s=s.join('/');return String(s).replace(/^\/+|\/+$/g,'')};
 export default async function handler(req,res){
  const path=pathname(req), method=req.method;
- if(!['GET','POST','PUT'].includes(method))return send(res,405,{error:'Metode tidak tersedia'});
+ if(!['GET','POST','PUT','DELETE'].includes(method))return send(res,405,{error:'Metode tidak tersedia'});
  const origin=req.headers.origin, host=req.headers['x-forwarded-host']||req.headers.host;
  if(method!=='GET'&&origin&&new URL(origin).host!==host)return send(res,403,{error:'Origin tidak diizinkan'});
  if(path==='health'&&method==='GET')return send(res,200,{ok:true,storage:storeReady(),admin:adminReady(),platform:'vercel'});
@@ -57,21 +58,67 @@ export default async function handler(req,res){
    const clean=questions.slice(0,8).filter(q=>q&&typeof q.question==='string'&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(x=>typeof x==='string')&&typeof q.answer==='string'&&q.options.includes(q.answer)&&typeof q.explanation==='string').map(q=>({question:q.question.slice(0,500),options:q.options.map(x=>x.slice(0,120)),answer:q.answer,explanation:q.explanation.slice(0,600)}));
    return send(res,200,{questions:clean});
   }
+  if((path==='admin/questions'||path.startsWith('admin/questions/'))){
+   if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
+   const all=()=>readQuestionBank({read,list});
+   if(path==='admin/questions'&&method==='GET'){
+    const questions=await all();
+    return send(res,200,{questions,total:questions.length});
+   }
+   if(path==='admin/questions'&&method==='POST'){
+    const questions=await all();
+    if(questions.length>=500)return send(res,409,{error:'Batas 500 soal tercapai.'});
+    let sanitized;try{sanitized=normalizeQuestion(req.body?.question)}catch(e){return send(res,400,{error:e.message})}
+    const now=new Date().toISOString(),id='q-'+crypto.randomUUID();
+    const question={...sanitized,id,createdAt:now,updatedAt:now};
+    await write('questions/'+id+'.json',question);
+    return send(res,201,{saved:true,question});
+   }
+   if(path==='admin/questions/bulk'&&method==='POST'){
+    const input=req.body?.questions;
+    if(!Array.isArray(input)||input.length<1||input.length>10)return send(res,400,{error:'Masukkan 1–10 soal sekaligus.'});
+    const old=await all();
+    if(old.length+input.length>500)return send(res,409,{error:'Kapasitas maksimal 500 soal.'});
+    let records;try{records=input.map(normalizeQuestion)}catch(e){return send(res,400,{error:e.message})}
+    const now=new Date().toISOString(),questions=[];
+    for(const data of records){
+     const id='q-'+crypto.randomUUID();
+     const question={...data,id,createdAt:now,updatedAt:now};
+     await write('questions/'+id+'.json',question);
+     questions.push(question);
+    }
+    return send(res,201,{saved:true,questions,count:questions.length});
+   }
+   if(path.startsWith('admin/questions/')){
+    const id=decodeURIComponent(path.slice('admin/questions/'.length));
+    if(!questionIdOK(id))return send(res,400,{error:'ID soal tidak valid.'});
+    const questions=await all(),existing=questions.find(q=>q.id===id);
+    if(!existing)return send(res,404,{error:'Soal tidak ditemukan atau sudah dihapus.'});
+    if(method==='PUT'){
+     let sanitized;try{sanitized=normalizeQuestion(req.body?.question)}catch(e){return send(res,400,{error:e.message})}
+     const question={...sanitized,id,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+     await write('questions/'+id+'.json',question);
+     return send(res,200,{saved:true,question});
+    }
+    if(method==='DELETE'){
+     await write('questions/'+id+'.json',{id,deleted:true,updatedAt:new Date().toISOString()});
+     return send(res,200,{deleted:true,id});
+    }
+   }
+   return send(res,405,{error:'Metode CRUD tidak didukung.'});
+  }
   if(path==='bank'&&method==='GET'){
    if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
-   return send(res,200,{questions:await read('config/bank.json')||[]});
+   return send(res,200,{questions:await readQuestionBank({read,list})});
   }
   if(path==='bank'&&method==='PUT'){
-   if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
-   const questions=req.body?.questions;
-   if(!Array.isArray(questions)||questions.length>500)return send(res,400,{error:'Bank soal tidak valid'});
-   await write('config/bank.json',questions);
-   return send(res,200,{saved:true});
+   return send(res,410,{error:'Penyimpanan massal lama dihentikan. Gunakan API admin/questions agar soal lain tidak tertimpa.'});
   }
   if(path==='public/questions'&&method==='GET'){
    const grade=String(req.query.grade||'');
-   const all=await read('config/bank.json')||[];
-   const questions=all.filter(q=>q.grade===grade).slice(0,30);
+   if(!/^Kelas [1-6]$/.test(grade))return send(res,400,{error:'Kelas tidak didukung.'});
+   const all=await readQuestionBank({read,list});
+   const questions=all.filter(q=>q.grade===grade&&q.active!==false).slice(0,60);
    return send(res,200,{questions});
   }
   if(path==='school'&&method==='GET')return send(res,200,{school:await read('config/school.json')||{name:'Nusantara Math Adventure',music:true}});
