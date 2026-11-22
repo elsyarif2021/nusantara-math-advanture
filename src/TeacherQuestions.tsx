@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {BookOpen,Check,FilePenLine,Plus,RefreshCw,Save,ShieldCheck,Trash2,X} from 'lucide-react';
 import {gradeTopics,grades,islandData,type Question} from './learning';
+import {uploadQuestionImage} from './uploadQuestionImage';
 
 type ClassLink={token:string;grade:string;label:string;active:boolean};
 type TeacherQuestion=Question&{id:string;teacherId:string;updatedAt?:string};
@@ -14,7 +15,7 @@ const empty=(grade:string):Question=>({grade,topic:gradeTopics[grade][0],culture
 export default function TeacherQuestions({links,mode='teacher',teacherId}:{links:ClassLink[];mode?:'teacher'|'superadmin';teacherId?:string}){
  const base=mode==='superadmin'?'admin/teacher-questions':'teacher/questions';
  const ownedGrades=useMemo(()=>grades.filter(g=>links.some(l=>l.grade===g)),[links]);
- const [items,setItems]=useState<TeacherQuestion[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false);
+ const [items,setItems]=useState<TeacherQuestion[]>([]),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[imageUploading,setImageUploading]=useState(false);
  const [gradeFilter,setGradeFilter]=useState('Semua'),[regionFilter,setRegionFilter]=useState('Semua'),[topicFilter,setTopicFilter]=useState('Semua'),[search,setSearch]=useState('');
  const [draft,setDraft]=useState<Question|null>(null),[confirmDelete,setConfirmDelete]=useState<string|null>(null),[error,setError]=useState(''),[success,setSuccess]=useState('');
  async function refresh(){try{const r=await request(base+(mode==='superadmin'?'?teacherId='+encodeURIComponent(teacherId||''):''));setItems(r.questions||[])}catch(e:any){setError(e.message)}finally{setLoading(false)}}
@@ -33,6 +34,15 @@ export default function TeacherQuestions({links,mode='teacher',teacherId}:{links
   setDraft({...q,options:[...q.options],active:q.active!==false});
   setConfirmDelete(null);clearMessages();
   setTimeout(()=>document.getElementById('teacher-question-form')?.scrollIntoView({behavior:'smooth',block:'center'}),100);
+ }
+ async function onPickImage(file?:File){
+  if(!file||!draft)return;
+  setImageUploading(true);clearMessages();
+  try{
+   const url=await uploadQuestionImage(file,mode==='superadmin'?'superadmin':'teacher');
+   setDraft(d=>d?{...d,imageUrl:url}:d);
+   setSuccess('Gambar berhasil diunggah. Simpan soal untuk menerapkan gambar.');
+  }catch(e:any){setError(e.message)}finally{setImageUploading(false)}
  }
  async function save(){
   if(!draft)return;
@@ -76,12 +86,19 @@ export default function TeacherQuestions({links,mode='teacher',teacherId}:{links
     <div className="teacher-question-options"><strong>Empat pilihan jawaban (A–D) *</strong><div className="teacher-question-form-grid">{draft.options.map((v,i)=><label key={i}>Pilihan {String.fromCharCode(65+i)}<input value={v} maxLength={230} onChange={e=>setDraft(d=>{if(!d)return d;const options=[...d.options],old=options[i];options[i]=e.target.value;return {...d,options,answer:d.answer===old?e.target.value:d.answer}})}/></label>)}</div></div>
     <label>Kunci jawaban *<select value={draft.answer} onChange={e=>setDraft(d=>d?{...d,answer:e.target.value}:d)}><option value="">Pilih jawaban benar</option>{draft.options.map((v,i)=><option key={i} value={v} disabled={!v.trim()}>{String.fromCharCode(65+i)} — {v||'(belum diisi)'}</option>)}</select></label>
     <label>Pembahasan *<textarea rows={3} maxLength={1800} value={draft.explanation} onChange={e=>setDraft(d=>d?{...d,explanation:e.target.value}:d)} placeholder="Tunjukkan cara menghitung jawaban yang benar…"/></label>
+    <div className="question-image-uploader">
+     <label>🖼️ Upload gambar soal dari HP / komputer (JPG, PNG, WEBP · maks. 2 MB)
+      <input type="file" accept="image/jpeg,image/png,image/webp" disabled={imageUploading||busy} onChange={e=>{const f=e.currentTarget.files?.[0];if(f)void onPickImage(f);e.currentTarget.value=''}}/>
+     </label>
+     {imageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar ke penyimpanan aman…</span>}
+     {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal yang ditambahkan" loading="lazy"/><button className="outline-button" disabled={imageUploading} onClick={()=>setDraft(d=>d?{...d,imageUrl:''}:d)}>Hapus gambar dari soal</button></div>}
+    </div>
     <div className="teacher-question-form-grid media">
-     <label>URL gambar HTTPS (opsional)<input type="url" value={draft.imageUrl||''} onChange={e=>setDraft(d=>d?{...d,imageUrl:e.target.value}:d)} placeholder="https://…/gambar.jpg"/></label>
+     <label>Alamat gambar HTTPS / otomatis terisi setelah upload<input type="text" value={draft.imageUrl||''} onChange={e=>setDraft(d=>d?{...d,imageUrl:e.target.value}:d)} placeholder="https://…/gambar.jpg"/></label>
      <label>URL video YouTube (opsional)<input type="url" value={draft.videoUrl||''} onChange={e=>setDraft(d=>d?{...d,videoUrl:e.target.value}:d)} placeholder="https://youtu.be/…"/></label>
      <label>URL audio HTTPS (opsional)<input type="url" value={draft.audioUrl||''} onChange={e=>setDraft(d=>d?{...d,audioUrl:e.target.value}:d)} placeholder="https://…/audio.mp3"/></label>
     </div>
-    <div className="teacher-question-form-actions"><span>Soal disimpan hanya untuk kelas milikmu. Media menggunakan tautan HTTPS.</span><button className="outline-button" onClick={()=>setDraft(null)}>Batal</button><button className="big-primary" disabled={busy||!formOK} onClick={save}><Save size={16}/>{busy?'Menyimpan…':draft.id?'Simpan Perubahan':'Simpan Soal'}</button></div>
+    <div className="teacher-question-form-actions"><span>Soal disimpan hanya untuk kelas milikmu. Media menggunakan tautan HTTPS.</span><button className="outline-button" onClick={()=>setDraft(null)}>Batal</button><button className="big-primary" disabled={busy||imageUploading||!formOK} onClick={save}><Save size={16}/>{busy?'Menyimpan…':draft.id?'Simpan Perubahan':'Simpan Soal'}</button></div>
    </div>}
    <div className="teacher-question-list-head"><strong>{filtered.length} soal sesuai filter</strong><small>{mode==='superadmin'?'Super Admin dapat mengelola bank setiap guru sesuai pilihan.':'Soal guru lain dan bank global tidak dapat diedit di sini.'}</small></div>
    <div className="teacher-question-list">{filtered.map(q=><article key={q.id} className="teacher-question-item">
@@ -89,6 +106,7 @@ export default function TeacherQuestions({links,mode='teacher',teacherId}:{links
     <h3>{q.question}</h3>
     <div className="teacher-question-preview">{q.options.map((v,i)=><span className={v===q.answer?'right':''} key={i}><b>{String.fromCharCode(65+i)}.</b> {v}{v===q.answer?' ✓':''}</span>)}</div>
     <p><b>Pembahasan:</b> {q.explanation}</p>
+    {q.imageUrl&&<img className="question-list-image" src={q.imageUrl} alt="Ilustrasi untuk soal ini" loading="lazy"/>}
     <div className="teacher-question-media">{q.imageUrl&&<span>🖼️ Gambar</span>}{q.videoUrl&&<span>🎬 YouTube</span>}{q.audioUrl&&<span>🔊 Audio</span>}</div>
     <div className="teacher-question-actions">
      <button className="outline-button" disabled={busy} onClick={()=>editQuestion(q)}><FilePenLine size={15}/> Edit</button>
