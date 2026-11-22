@@ -58,6 +58,19 @@ export default async function handler(req,res){
    const clean=questions.slice(0,8).filter(q=>q&&typeof q.question==='string'&&Array.isArray(q.options)&&q.options.length===4&&q.options.every(x=>typeof x==='string')&&typeof q.answer==='string'&&q.options.includes(q.answer)&&typeof q.explanation==='string').map(q=>({question:q.question.slice(0,500),options:q.options.map(x=>x.slice(0,120)),answer:q.answer,explanation:q.explanation.slice(0,600)}));
    return send(res,200,{questions:clean});
   }
+  if(path==='public/mission-config'&&method==='GET'){
+   const grade=String(req.query.grade||''),culture=String(req.query.culture||'');
+   if(!/^Kelas [1-6]$/.test(grade)||!['sumatra','jawa','kalimantan','sulawesi','bali','maluku','papua'].includes(culture))return send(res,400,{error:'Kelas atau pulau tidak valid.'});
+   const config=await read('settings/missions/'+grade.slice(-1)+'/'+culture+'.json');
+   return send(res,200,{grade,culture,mode:config?.mode==='manual'?'manual':'mixed'});
+  }
+  if(path==='admin/mission-config'&&method==='PUT'){
+   if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
+   const grade=String(req.body?.grade||''),culture=String(req.body?.culture||''),mode=String(req.body?.mode||'');
+   if(!/^Kelas [1-6]$/.test(grade)||!['sumatra','jawa','kalimantan','sulawesi','bali','maluku','papua'].includes(culture)||!['manual','mixed'].includes(mode))return send(res,400,{error:'Pengaturan misi tidak valid.'});
+   await write('settings/missions/'+grade.slice(-1)+'/'+culture+'.json',{grade,culture,mode,updatedAt:new Date().toISOString()});
+   return send(res,200,{saved:true,grade,culture,mode});
+  }
   if((path==='admin/questions'||path.startsWith('admin/questions/'))){
    if(!isAdmin(req))return send(res,401,{error:'Login administrator diperlukan'});
    const all=()=>readQuestionBank({read,list});
@@ -138,7 +151,7 @@ export default async function handler(req,res){
     if(old&&(old.id!==id||old.grade!==p.grade||old.name!==p.name))return send(res,409,{error:'Identitas perjalanan tidak cocok'});
     if(!old&&(p.gamesPlayed!==0||p.xp!==0||p.completed.length!==0||p.recent.length!==0))return send(res,409,{error:'Profil baru wajib dimulai dengan progres kosong'});
     if(old&&(p.gamesPlayed!==old.gamesPlayed+1||p.xp<old.xp||p.xp-old.xp>300||p.completed.length<old.completed.length||p.completed.length>old.completed.length+1))return send(res,409,{error:'Lompatan progres tidak valid'});
-    if(old&&(p.recent.length===0||p.recent.at(-1)?.total!==8||p.recent.at(-1)?.score<0||p.recent.at(-1)?.score>8))return send(res,409,{error:'Hasil latihan tidak valid'});
+    if(old&&(p.recent.length===0||!Number.isInteger(p.recent.at(-1)?.total)||p.recent.at(-1)?.total<1||p.recent.at(-1)?.total>8||p.recent.at(-1)?.score<0||p.recent.at(-1)?.score>8))return send(res,409,{error:'Hasil latihan tidak valid'});
     const progress={id,name:p.name.trim(),grade:p.grade,completed:[...new Set(p.completed)],xp:p.xp,gamesPlayed:p.gamesPlayed,recent:p.recent.slice(-25),updatedAt:new Date().toISOString()};
     await write('students/'+id+'.json',progress);
     return send(res,200,{saved:true,progress});
