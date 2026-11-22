@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import {get,put,list} from '@vercel/blob';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
 import {handleTeacherRoutes} from './teacherRoutes.js';
+import {tokenInviteOK,idTeacherOK} from './teacherAuth.js';
+import {readTeacherQuestions,selectPublicQuestions} from './teacherQuestions.js';
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
@@ -137,10 +139,19 @@ export default async function handler(req,res){
    return send(res,410,{error:'Penyimpanan massal lama dihentikan. Gunakan API admin/questions agar soal lain tidak tertimpa.'});
   }
   if(path==='public/questions'&&method==='GET'){
-   const grade=String(req.query.grade||'');
+   const grade=String(req.query.grade||''),token=String(req.query.token||'');
    if(!/^Kelas [1-6]$/.test(grade))return send(res,400,{error:'Kelas tidak didukung.'});
-   const all=await readQuestionBank({read,list});
-   const questions=all.filter(q=>q.grade===grade&&q.active!==false).slice(0,60);
+   let owned=[];
+   if(token){
+    if(!tokenInviteOK(token))return send(res,400,{error:'Kode tautan kelas tidak valid.'});
+    const invite=await read('invites/'+token+'.json');
+    if(!invite||invite.grade!==grade||!idTeacherOK(invite.teacherId))return send(res,404,{error:'Kelas dari tautan guru tidak ditemukan.'});
+    const teacher=await read('teachers/'+invite.teacherId+'.json');
+    if(!teacher||teacher.active===false)return send(res,404,{error:'Guru pengampu tidak tersedia.'});
+    owned=await readTeacherQuestions(teacher.id,{read,list});
+   }
+   const shared=await readQuestionBank({read,list});
+   const questions=selectPublicQuestions({globalQuestions:shared,teacherQuestions:owned,grade});
    return send(res,200,{questions});
   }
   if(path==='school'&&method==='GET')return send(res,200,{school:await read('config/school.json')||{name:'Nusantara Math Adventure',music:true}});
