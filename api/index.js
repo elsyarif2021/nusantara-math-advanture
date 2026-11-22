@@ -1,10 +1,13 @@
 import crypto from 'node:crypto';
+import {Readable} from 'node:stream';
 import {get,put,list} from '@vercel/blob';
+import {handleUpload} from '@vercel/blob/client';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
 import {handleTeacherRoutes,resolveTeacher} from './teacherRoutes.js';
 import {tokenInviteOK,idTeacherOK} from './teacherAuth.js';
 import {readTeacherQuestions,selectPublicQuestions} from './teacherQuestions.js';
 import {parseQuestionImage,createQuestionImageLocation,imageStorageFromRoute} from './questionImages.js';
+import {mediaUploadPath,mediaRoute} from './questionMedia.js';
 
 const send=(res,status,body,headers={})=>{res.status(status);res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');for(const[k,v]of Object.entries(headers))res.setHeader(k,v);res.json(body)};
 const idOK=x=>typeof x==='string'&&/^[a-f0-9]{32}$/.test(x);
@@ -26,6 +29,61 @@ export default async function handler(req,res){
  if(path==='health'&&method==='GET')return send(res,200,{ok:true,storage:storeReady(),admin:adminReady(),platform:'vercel'});
  if(!storeReady())return send(res,503,{error:'Penyimpanan belum diaktifkan. Hubungkan private Vercel Blob ke proyek ini.'});
  try{
+  if(path==='question-media/upload'&&method==='POST'){
+   if(req.body?.type!=='blob.generate-client-token'&&req.body?.type!=='blob.upload-completed')return send(res,400,{error:'Permintaan upload tidak valid.'});
+   const result=await handleUpload({
+    request:req,
+    body:req.body,
+    onBeforeGenerateToken:async(pathname,clientPayload)=>{
+     const media=mediaUploadPath(pathname);
+     if(!media)return Promise.reject(Error('Format dan alamat media tidak valid.'));
+     let payload;
+     try{payload=JSON.parse(clientPayload||'{}')}catch{throw Error('Data peran pengunggah tidak valid.')}
+     if(payload.role==='superadmin'){
+      if(!isAdmin(req)||media.owner!=='superadmin')throw Error('Akses upload Super Admin tidak diizinkan.');
+     }else if(payload.role==='teacher'){
+      const teacher=await resolveTeacher(req,{read});
+      if(!teacher||teacher.id!==media.owner)throw Error('Akses upload Guru tidak diizinkan.');
+     }else throw Error('Peran pengunggah tidak valid.');
+     return {
+      allowedContentTypes:[media.contentType],
+      maximumSizeInBytes:media.maxBytes,
+      addRandomSuffix:false,
+      allowOverwrite:false,
+      validUntil:Date.now()+15*60*1000,
+      tokenPayload:JSON.stringify({owner:media.owner,kind:media.kind}),
+     };
+    },
+   });
+   return send(res,200,result);
+  }
+  if(path.startsWith('question-media/file/')&&method==='GET'){
+   const media=mediaRoute(path);
+   if(!media)return send(res,404,{error:'Media soal tidak ditemukan.'});
+   // Serve short byte ranges so videos and MP3 can seek without exceeding Vercel response limits.
+   const raw=String(req.headers.range||'');
+   if(raw&&!/^bytes=\d+-\d*$/.test(raw))return send(res,416,{error:'Range media tidak valid.'});
+   const match=raw.match(/^bytes=(\d+)-(\d*)$/);
+   const start=match?Number(match[1]):0;
+   if(!Number.isSafeInteger(start)||start<0)return send(res,416,{error:'Range media tidak valid.'});
+   const endRequested=match&&match[2]?Number(match[2]):start+1048575;
+   if(!Number.isSafeInteger(endRequested)||endRequested<start)return send(res,416,{error:'Range media tidak valid.'});
+   const end=Math.min(endRequested,start+1048575);
+   const blob=await get(media.pathname,{access:'private',headers:{Range:'bytes='+start+'-'+end}});
+   if(!blob)return send(res,404,{error:'Media soal tidak ditemukan.'});
+   const contentRange=blob.headers.get('content-range');
+   if(!contentRange){console.error('Blob did not honor media byte-range request');return send(res,503,{error:'Media belum dapat diputar. Coba beberapa saat lagi.'});}
+   res.status(206);
+   res.setHeader('Content-Type',media.contentType);
+   res.setHeader('Content-Range',contentRange);
+   res.setHeader('Accept-Ranges','bytes');
+   res.setHeader('X-Content-Type-Options','nosniff');
+   res.setHeader('Cache-Control','public, max-age=86400');
+   const length=blob.headers.get('content-length');
+   if(length)res.setHeader('Content-Length',length);
+   Readable.fromWeb(blob.stream).on('error',e=>{console.error('Streaming media failed',e.message);res.destroy(e)}).pipe(res);
+   return;
+  }
   if(path==='question-images/upload'&&method==='POST'){
    const requestedRole=String(req.body?.role||'');
    let owner;
