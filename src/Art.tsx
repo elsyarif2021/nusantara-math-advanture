@@ -54,7 +54,7 @@ export function IndonesiaMap({completed=[],onSelect}:{completed?:number[],onSele
  </svg>
 }
 type CulturalArtProps={id:string;className?:string;label?:boolean};
-export function CulturalArt({id,className='',label=true}:CulturalArtProps){
+export function CultureArt({id,className='',label=true}:CulturalArtProps){
  const item=islandData.find(i=>i.id===id)||islandData[0];
  const common=<><defs><linearGradient id={'sky-'+id} x1="0" y1="0" x2="0" y2="1"><stop stopColor="#85dbf6"/><stop offset="1" stopColor="#d5fbe9"/></linearGradient></defs><rect width="440" height="245" rx="18" fill={`url(#sky-${id})`}/><circle cx="378" cy="45" r="30" fill="#ffe99c"/><path d="M0 144 Q84 94 170 144 T340 140 T440 130 V245H0Z" fill="#78d4a3"/><path d="M0 175 Q95 135 206 176 T440 167 V245H0Z" fill="#68bd7f"/><path d="M0 203Q105 180 202 206T440 193V245H0Z" fill="#e0c89a"/><path d="M18 58q24-29 56 0t57 0" stroke="white" fill="none" strokeWidth="18" strokeLinecap="round" opacity=".8"/></>;
  const house=<g transform="translate(88 68)"><rect x="35" y="84" width="214" height="92" fill="#bd7647" stroke="#793d2f" strokeWidth="5"/>{Array.from({length:5},(_,i)=><path key={i} d={`M${i*55} 86 Q${i*55+12} 52 ${i*55+27} 22 Q${i*55+42} 55 ${i*55+55} 86`} fill="#543c57" stroke="#492f37" strokeWidth="6"/>)}{[0,1,2,3].map(i=><rect key={i} x={55+i*46} y="111" width="27" height="39" rx="2" fill="#ffc77f" stroke="#663d33" strokeWidth="4"/>)}<path d="M26 172H260" stroke="#87583c" strokeWidth="9"/></g>;
