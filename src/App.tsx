@@ -38,6 +38,7 @@ export default function App(){
  const[music,setMusic]=useState(false),[voice,setVoice]=useState(false),[moreOpen,setMoreOpen]=useState(false);
  const audioRef=useRef<HTMLAudioElement|null>(null),mapRef=useRef<HTMLElement|null>(null);
  const rank=student?(student.completed.length>=7?'Penjelajah Nusantara':student.completed.length>=4?'Pelaut Emas':student.completed.length>=1?'Petualang Hebat':'Petualang Baru'):'Ayo Jadi Petualang';
+ const daily=student?.recent.some(x=>new Date(x.date).toDateString()===new Date().toDateString())??false;
  const gradeIndex=Number(chosenGrade.replace('Kelas ','')),profileGrade=student?.grade??chosenGrade;
  useEffect(()=>{
   let cancelled=false;
