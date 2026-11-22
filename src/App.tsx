@@ -315,9 +315,9 @@ export default function App(){
       <label>Pembahasan *<textarea rows={3} value={draft.explanation} maxLength={1800} onChange={e=>setDraft(d=>({...d,explanation:e.target.value}))} placeholder="Jelaskan langkah perhitungan dan alasan jawaban benar…"/></label>
       <div className="question-image-uploader">
        <label>🖼️ Gambar Soal (Opsional) — langsung dari HP / laptop
-        <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy||adminImageUploading||Boolean(adminMediaUploading)} aria-label="Pilih gambar soal dari perangkat" onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void onAdminPickImage(file);e.currentTarget.value=''}}/>
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp" disabled={busy||adminImageUploading||Boolean(adminMediaUploading)} aria-label="Pilih gambar soal dari perangkat" onChange={e=>{const file=e.currentTarget.files?.[0];if(file)void onAdminPickImage(file);e.currentTarget.value=''}}/>
        </label>
-       <small>Ketuk “Pilih File” untuk membuka galeri atau file perangkat. JPG, PNG, WEBP · maksimal 2 MB. Tidak perlu menyalin tautan gambar.</small>
+       <small>Ketuk “Pilih File” untuk membuka galeri atau file perangkat. JPG/JPEG, PNG, WebP, GIF, AVIF, BMP · maksimal 2 MB. Tidak perlu menyalin tautan gambar.</small>
        {adminImageUploading&&<span className="upload-image-status" role="status">Mengunggah gambar dari perangkat…</span>}
        {draft.imageUrl&&<div className="question-image-preview"><img src={draft.imageUrl} alt="Pratinjau gambar soal" loading="lazy"/><button type="button" className="outline-button" onClick={()=>setDraft(d=>({...d,imageUrl:''}))} disabled={busy||adminImageUploading}>Hapus gambar dari soal</button></div>}
       </div>
