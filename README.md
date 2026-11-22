@@ -36,7 +36,7 @@ Atur di Vercel → Project → Settings → Environment Variables, hanya di **se
 | Variabel | Kegunaan |
 |---|---|
 | `BLOB_READ_WRITE_TOKEN` | Terpasang otomatis melalui integrasi private Vercel Blob |
-| `ADMIN_PASSWORD` | Kata sandi admin minimal 12 karakter, unik |
+| `ADMIN_PASSWORD` | Kata sandi admin minimal 8 karakter; pilih kombinasi unik dan kuat (lebih panjang tetap disarankan) |
 | `SESSION_SECRET` | Kunci sesi acak minimal 32 karakter |
 | `OLLAMA_API_KEY` | Kunci Ollama Cloud untuk fitur generator AI |
 | `OLLAMA_MODEL` | Model Ollama yang tersedia (opsional) |
