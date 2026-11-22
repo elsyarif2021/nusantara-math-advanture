@@ -1,6 +1,6 @@
 export type Question={id?:string;question:string;options:string[];answer:string;explanation:string;grade?:string;topic?:string;imageUrl?:string;videoUrl?:string;audioUrl?:string;cultureId?:string;active?:boolean;createdAt?:string;updatedAt?:string};
 export type Score={region:string;score:number;total:number;date:string};
-export type Student={id:string;name:string;grade:string;xp:number;gamesPlayed:number;completed:number[];recent:Score[];updatedAt?:string};
+export type Student={id:string;name:string;grade:string;xp:number;gamesPlayed:number;completed:number[];recent:Score[];updatedAt?:string;teacherId?:string|null;inviteToken?:string|null};
 export type SchoolConfig={name:string;music:boolean;logoUrl?:string};
 
 export const islandData=[
