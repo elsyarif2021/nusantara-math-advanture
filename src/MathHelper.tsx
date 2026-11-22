@@ -47,7 +47,11 @@ export default function MathHelper({question,topic,answered}:{question:string;to
  const close=()=>{setOpen(false)};
  const go=(delta:number)=>setStage(v=>Math.max(0,Math.min(3,v+delta)) as Stage);
  return <div className="math-aid">
-  {!open?<button type="button" className="math-aid-toggle" onClick={()=>setOpen(true)} aria-expanded={false}><Calculator size={19}/> 🧮 Alat Bantu Matematika <span>4 langkah</span></button>:
+  {!open?<div className="math-aid-quick">
+    <strong>💡 Cara Mudah Menjawab Soal</strong>
+    <ol><li>Baca soal, temukan angka dan yang ditanya.</li><li>{topicHint(topic)}</li><li>Hitung perlahan, lalu cocokkan dengan pilihan A–D.</li></ol>
+    <button type="button" className="math-aid-toggle" onClick={()=>setOpen(true)} aria-expanded={false}><Calculator size={19}/> 🧮 Buka Kalkulator & Panduan <span>4 langkah</span></button>
+   </div>:
   <section className="math-aid-panel" aria-label="Alat bantu hitung dan langkah pemecahan soal">
    <div className="math-aid-heading"><div><b>🧮 Ayo pecahkan bersama!</b><small>Kalkulator & langkah belajar • tidak menampilkan kunci jawaban</small></div><button type="button" onClick={close} aria-label="Tutup alat bantu"><X size={18}/></button></div>
    <div className="math-aid-stages" aria-label={'Langkah '+(stage+1)+' dari 4'}>{titles.map((title,i)=><button type="button" key={title} className={stage===i?'active':i<stage?'visited':''} onClick={()=>setStage(i as Stage)} aria-current={stage===i?'step':undefined}><span>{i+1}</span><small>{title}</small></button>)}</div>

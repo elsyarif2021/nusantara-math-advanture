@@ -232,3 +232,27 @@
 .quiz-paper video.extra-media{display:block;max-width:100%;min-height:0;max-height:420px;width:100%;background:#051622;object-fit:contain}
 .quiz-paper audio{width:100%;max-width:100%;margin:8px 0}
 @media(max-width:540px){.media-upload-group{padding:11px;gap:11px}.media-preview{align-items:stretch;flex-direction:column}.media-preview button{width:100%}.media-preview audio,.media-preview video{width:100%}}
+
+/* Grade 1–6 learning help and direct, user-initiated quiz audio controls. */
+.quiz-audio-tools{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0 7px}
+.quiz-audio-tools button,.map-sound-controls button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #a4d5e5;border-radius:10px;padding:9px 12px;background:#f1fcff;color:#226288;font-weight:900;font-size:12px;cursor:pointer}
+.quiz-audio-tools button:hover,.map-sound-controls button:hover{background:#daf5ff}
+.quiz-audio-tools .quiz-read-btn{background:#e0fbef;border-color:#8bcbb0;color:#136a53}
+.quiz-audio-tools button[aria-pressed="true"],.map-sound-controls button[aria-pressed="true"]{border-color:#64b9ac;background:#e0f9ee}
+.map-sound-controls{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;padding:8px 10px;background:#edfcff}
+.math-aid-quick{border:2px solid #b0e1b4;background:#f3fff1;border-radius:15px;padding:11px 13px;margin:11px 0}
+.math-aid-quick>strong{display:block;font-size:14px;color:#277250;margin:2px 0 5px;font-weight:900}
+.math-aid-quick ol{font-size:12px;line-height:1.5;color:#446e5b;margin:6px 0 10px;padding-left:22px}
+.math-aid-quick li{margin:3px 0}
+.math-aid-quick .math-aid-toggle{margin:7px 0 0;font-size:12px}
+@media(max-width:750px){
+ .quiz-page .quiz-columns{display:flex;flex-direction:column;gap:13px}
+ .quiz-page .quiz-columns .quiz-paper{order:1;width:100%;min-width:0}
+ .quiz-page .quiz-columns .quiz-scene{order:2;width:100%;min-width:0}
+ .quiz-audio-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .quiz-audio-tools .quiz-read-btn{grid-column:1/-1}
+ .quiz-audio-tools button{font-size:11px;padding:10px 8px}
+ .math-aid-quick{padding:10px}
+ .map-sound-controls{gap:5px}
+ .map-sound-controls button{font-size:11px}
+}
