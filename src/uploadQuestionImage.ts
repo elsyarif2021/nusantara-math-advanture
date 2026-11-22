@@ -1,8 +1,8 @@
 export const MAX_IMAGE_SIZE=2*1024*1024;
-const types=new Set(['image/png','image/jpeg','image/webp']);
+const types=new Set(['image/png','image/jpeg','image/jpg','image/webp','image/gif','image/avif','image/bmp','image/x-ms-bmp']);
 
 export async function uploadQuestionImage(file:File,role:'teacher'|'superadmin'):Promise<string>{
- if(!types.has(file.type))throw new Error('Format gambar harus JPG, PNG, atau WEBP.');
+ if(!types.has(file.type))throw new Error('Format gambar: JPG/JPEG, PNG, WebP, GIF, AVIF, atau BMP.');
  if(file.size<1||file.size>MAX_IMAGE_SIZE)throw new Error('Ukuran gambar maksimal 2 MB.');
  const dataUrl=await new Promise<string>((resolve,reject)=>{
   const reader=new FileReader();
