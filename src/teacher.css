@@ -153,3 +153,12 @@
 .lesson-login-prompt p{font-size:13px;line-height:1.65;color:#6186a1;margin:0 0 6px}
 .lesson-login-prompt button{min-width:190px}
 @media(max-width:600px){.lesson-login-prompt{padding:23px 14px;margin:14px 0}.lesson-login-prompt h2{font-size:21px}}
+
+
+/* File-first question attachments: users never need a picture URL */
+.question-image-uploader>small{display:block;color:#477b8b;font-size:12px;line-height:1.55;font-weight:700}
+.question-extra-media{border:1px solid #cddfe7;background:#f9fcff;border-radius:14px;padding:0;margin:10px 0}
+.question-extra-media>summary{padding:13px 15px;cursor:pointer;font-weight:900;font-size:12px;color:#557489}
+.question-extra-media[open]>summary{border-bottom:1px solid #dcebf0}
+.question-extra-media>.teacher-question-form-grid,.question-extra-media>.question-fields{padding:13px 15px}
+.question-extra-media input[type=url]{min-width:0}
