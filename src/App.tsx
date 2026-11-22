@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,BookOpen,Check,CheckCircle2,ChevronDown,ChevronRight,Compass,Crown,Download,GraduationCap,Headphones,Home,LockKeyhole,LogOut,MapPinned,Medal,Play,Plus,RefreshCw,School,Settings,ShieldCheck,Ship, Sparkles,Volume2,VolumeX,WandSparkles,XCircle,X,BarChart3,Flag,Map as MapIcon,Gift,Users} from 'lucide-react';
 import {CultureArt,ExplorerHero,IndonesiaMap} from './Art';
 import TeacherPortal from './TeacherPortal';
+import RoleGuide from './RoleGuide';
 import SuperAdminTeachers from './SuperAdminTeachers';
 import {uploadQuestionImage} from './uploadQuestionImage';
 import {uploadQuestionMedia,type OptionalMediaKind} from './uploadQuestionMedia';
@@ -246,10 +247,10 @@ export default function App(){
     <div className="admin-bar"><b>🟢 Super Admin</b><button className="outline-button" onClick={logoutAdmin}><LogOut size={16}/> Keluar</button></div>
     <nav className="role-nav admin-role-nav" aria-label="Menu Super Admin">
      <button className={adminTab==='overview'?'selected':''} aria-current={adminTab==='overview'?'page':undefined} onClick={()=>setAdminTab('overview')}><Home size={17}/> Ringkasan</button>
-     <button className={adminTab==='teachers'?'selected':''} aria-current={adminTab==='teachers'?'page':undefined} onClick={()=>setAdminTab('teachers')}><Users size={17}/> Guru</button>
-     <button className={adminTab==='students'?'selected':''} aria-current={adminTab==='students'?'page':undefined} onClick={()=>setAdminTab('students')}><GraduationCap size={17}/> Siswa</button>
-     <button className={adminTab==='questions'?'selected':''} aria-current={adminTab==='questions'?'page':undefined} onClick={()=>setAdminTab('questions')}><BookOpen size={17}/> Bank Soal</button>
-     <button className={adminTab==='settings'?'selected':''} aria-current={adminTab==='settings'?'page':undefined} onClick={()=>setAdminTab('settings')}><Settings size={17}/> Pengaturan</button>
+     <button data-guide="admin-teachers" className={adminTab==='teachers'?'selected':''} aria-current={adminTab==='teachers'?'page':undefined} onClick={()=>setAdminTab('teachers')}><Users size={17}/> Guru</button>
+     <button data-guide="admin-students" className={adminTab==='students'?'selected':''} aria-current={adminTab==='students'?'page':undefined} onClick={()=>setAdminTab('students')}><GraduationCap size={17}/> Siswa</button>
+     <button data-guide="admin-questions" className={adminTab==='questions'?'selected':''} aria-current={adminTab==='questions'?'page':undefined} onClick={()=>setAdminTab('questions')}><BookOpen size={17}/> Bank Soal</button>
+     <button data-guide="admin-settings" className={adminTab==='settings'?'selected':''} aria-current={adminTab==='settings'?'page':undefined} onClick={()=>setAdminTab('settings')}><Settings size={17}/> Pengaturan</button>
     </nav>
     {adminTab==='overview'&&<section className="admin-overview">
      <h2>Selamat datang, Super Admin 👋</h2><p>Pilih pekerjaan yang ingin dilakukan. Fitur detail tersedia pada menu masing-masing.</p>
@@ -359,5 +360,6 @@ export default function App(){
   </main>}
   <footer className="site-footer"><span>⛵ {school.name}</span><div><span>Matematika SD Kelas 1–6 • Jelajah Budaya Indonesia</span></div></footer>
   {modal&&<div className="modal-underlay" onMouseDown={e=>{if(e.target===e.currentTarget)setModal(false)}}><section className="login-modal" role="dialog" aria-modal="true" aria-label="Masuk sebagai siswa"><button className="modal-close" onClick={()=>setModal(false)} aria-label="Tutup"><X size={19}/></button><div className="login-mascot">🧒🏽 🗺️</div><h2>Halo, Petualang Hebat!</h2><p>Isi nama dan kelasmu untuk mulai berlayar. Tanpa PIN, ya!</p><label>Nama Lengkap Siswa<input value={name} maxLength={80} onChange={e=>setName(e.target.value)} placeholder="Tulis nama kamu…"/></label>{invite&&inviteStatus==='valid'&&<div className="invite-modal-label">👩‍🏫 Kelas {invite.label} · Guru {invite.teacherName}</div>}<label>Kelas SD<select disabled={Boolean(invite&&inviteStatus==='valid')} value={invite?.grade||chosenGrade} onChange={e=>setChosenGrade(e.target.value)}><option value="" disabled>Pilih kelas 1–6…</option>{grades.map(g=><option key={g} value={g}>{g}</option>)}</select></label><button className="big-primary full" disabled={busy||(isJoinPath()&&inviteStatus!=='valid')} onClick={enroll}><Ship size={18}/>{busy?'Menyimpan…':'Masuk ke Peta'}</button><small>Data belajar tersimpan di penyimpanan privat. Jangan gunakan nama lengkap jika perangkat dipakai bersama.</small></section></div>}
+  <RoleGuide role={view==='admin'?'superadmin':view==='teacher'?'teacher':'student'} signedIn={view==='admin'?admin:view==='teacher'?teacherAuthed:Boolean(student)}/>
  </div>;
 }
