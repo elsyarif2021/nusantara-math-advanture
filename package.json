@@ -19,7 +19,8 @@
     "react-dom": "^19.0.0",
     "lucide-react": "^0.469.0",
     "jspdf": "^3.0.0",
-    "exceljs": "^4.4.0"
+    "exceljs": "^4.4.0",
+    "mongodb": "^6.21.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
