@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import {Readable} from 'node:stream';
-import {get,put,list} from '@vercel/blob';
+import {get,put,list as blobList} from '@vercel/blob';
+import {mongoDocPing,mongoDocRead,mongoDocWrite,mongoDocList} from './mongoDocuments.js';
 import {handleUpload} from '@vercel/blob/client';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
 import {handleTeacherRoutes,resolveTeacher} from './teacherRoutes.js';
@@ -16,9 +17,19 @@ const safeEqual=(a,b)=>{const x=crypto.createHash('sha256').update(String(a)).di
 const sign=part=>crypto.createHmac('sha256',process.env.SESSION_SECRET).update(part).digest('hex');
 const cookies=req=>Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim().split('=')).filter(x=>x.length>=2));
 function isAdmin(req){if(!adminReady())return false;const value=cookies(req).nma_admin||'';const [expires,nonce,signature]=value.split('.');if(!expires||!nonce||!signature||Number(expires)<Date.now())return false;return safeEqual(signature,sign(expires+'.'+nonce))}
-const storeReady=()=>Boolean(process.env.BLOB_READ_WRITE_TOKEN);
-async function read(path){const r=await get(path,{access:'private'});if(!r)return null;return await new Response(r.stream).json()}
-async function write(path,obj){return put(path,JSON.stringify(obj),{access:'private',contentType:'application/json',allowOverwrite:true})}
+const usingMongo=()=>Boolean(process.env.MONGODB_URI);
+const storeReady=()=>usingMongo()||Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+async function read(path){
+ if(usingMongo())return mongoDocRead(path);
+ const r=await get(path,{access:'private'});
+ if(!r)return null;
+ return await new Response(r.stream).json();
+}
+async function write(path,obj){
+ if(usingMongo())return mongoDocWrite(path,obj);
+ return put(path,JSON.stringify(obj),{access:'private',contentType:'application/json',allowOverwrite:true});
+}
+const list=options=>usingMongo()?mongoDocList(options):blobList(options);
 function studentOK(p,id){return p&&p.id===id&&typeof p.name==='string'&&p.name.trim().length>=2&&p.name.length<=80&&/^Kelas [1-6]$/.test(p.grade)&&Number.isSafeInteger(p.xp)&&p.xp>=0&&p.xp<=10000000&&Array.isArray(p.completed)&&p.completed.length<=14&&p.completed.every(x=>Number.isInteger(x)&&x>=1&&x<=7)&&Number.isInteger(p.gamesPlayed)&&p.gamesPlayed>=0&&p.gamesPlayed<=1000000&&Array.isArray(p.recent)&&p.recent.length<=25}
 const pathname=req=>{let s=req.query.path??'';if(Array.isArray(s))s=s.join('/');return String(s).replace(/^\/+|\/+$/g,'')};
 export default async function handler(req,res){
@@ -27,16 +38,22 @@ export default async function handler(req,res){
  const origin=req.headers.origin, host=req.headers['x-forwarded-host']||req.headers.host;
  if(method!=='GET'&&origin&&new URL(origin).host!==host)return send(res,403,{error:'Origin tidak diizinkan'});
  if(path==='health'&&method==='GET'){
-  if(!storeReady())return send(res,503,{ok:false,storage:false,storageAccess:'missing_token',admin:adminReady(),platform:'vercel',message:'Token Blob tidak terpasang di Vercel Production.'});
+  if(usingMongo()){
+   try{
+    await mongoDocPing();
+    return send(res,200,{ok:true,storage:true,storageAccess:'reachable',storageProvider:'mongodb',legacyBlobMigration:'pending',mediaStorage:process.env.BLOB_READ_WRITE_TOKEN?'configured_but_may_be_limited':'not_configured',admin:adminReady(),platform:'vercel'});
+   }catch(error){
+    console.error('MONGODB HEALTH ERROR',error?.message||error);
+    return send(res,503,{ok:false,storage:false,storageAccess:'unreachable',storageProvider:'mongodb',admin:adminReady(),platform:'vercel',message:'MongoDB tidak dapat dijangkau; periksa koneksi MongoDB pada Vercel.'});
+   }
+  }
+  if(!storeReady())return send(res,503,{ok:false,storage:false,storageAccess:'missing_token',admin:adminReady(),platform:'vercel',message:'Tidak ada penyimpanan dokumen yang aktif.'});
   try{
-   // A non-mutating authenticated read: a missing document (null) is fine,
-   // but 403 means the configured token/store/access mode is wrong.
    await get('config/school.json',{access:'private'});
-   return send(res,200,{ok:true,storage:true,storageAccess:'reachable',admin:adminReady(),platform:'vercel'});
+   return send(res,200,{ok:true,storage:true,storageAccess:'reachable',storageProvider:'blob',admin:adminReady(),platform:'vercel'});
   }catch(error){
-   const forbidden=/\\b403\\b|forbidden|access denied|not authorized|unauthorized/i.test(String(error?.message||''));
-   return send(res,503,{ok:false,storage:false,storageAccess:forbidden?'forbidden':'unreachable',admin:adminReady(),platform:'vercel',
-    message:forbidden?'Vercel Blob menolak akses (403). Periksa koneksi dan izin Private Blob store yang sudah ada.':'Vercel Blob belum dapat dibaca; periksa koneksi storage.'});
+   console.error('BLOB HEALTH ERROR',error?.message||error);
+   return send(res,503,{ok:false,storage:false,storageAccess:'unreachable',storageProvider:'blob',admin:adminReady(),platform:'vercel',message:'Vercel Blob tidak dapat dibaca; periksa kuota storage.'});
   }
  }
  if(!storeReady())return send(res,503,{error:'Penyimpanan belum diaktifkan. Hubungkan private Vercel Blob ke proyek ini.'});
