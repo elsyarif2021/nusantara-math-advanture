@@ -6,12 +6,13 @@ import RoleGuide from './RoleGuide';
 import {quizQuestionSpeech} from './quizAudio.mjs';
 import {shouldShowRoleEntry} from './roleEntryVisibility.mjs';
 import MathHelper from './MathHelper';
+import {getCuratedMission,curriculumFocus} from './curatedBank';
 import SuperAdminTeachers from './SuperAdminTeachers';
 import {uploadQuestionImage} from './uploadQuestionImage';
 import {uploadQuestionMedia,type OptionalMediaKind} from './uploadQuestionMedia';
 import './teacher.css';
 import {quizSound} from './sounds';
-import {gradeTopics,grades,islandData,makeMission,topicChips,type Question,type Student,type SchoolConfig} from './learning';
+import {gradeTopics,grades,islandData,topicChips,type Question,type Student,type SchoolConfig} from './learning';
 type View='home'|'materi'|'pencapaian'|'quiz'|'result'|'admin'|'teacher';
 type ClassInvite={token:string;grade:string;label:string;teacherName:string};
 const pathJoinToken=()=>window.location.pathname.match(/^\/gabung\/([a-f0-9]{48})\/?$/)?.[1]||null;
@@ -135,16 +136,37 @@ export default function App(){
   localStorage.setItem('nma-student-id',saved.id);setStudent(saved);setChosenGrade(saved.grade);setModal(false);setNotice('Selamat datang, '+clean+'! Pilih pulau di peta untuk memulai latihan.');say('Selamat datang di Nusantara Math Adventure!');setTimeout(()=>mapRef.current?.scrollIntoView({behavior:'smooth',block:'center'}),120);
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  function signout(){localStorage.removeItem('nma-student-id');localStorage.removeItem('nma-student-invite');setStudent(null);setName('');setChosenGrade(invite&&inviteStatus==='valid'?invite.grade:'');setMusic(false);navigate('home')}
- async function startMission(i:number){if(!needStudent())return;const s=student!;setBusy(true);setError('');
- try{const [r,config]=await Promise.all([api('public/questions?grade='+encodeURIComponent(s.grade)+(s.inviteToken?'&token='+encodeURIComponent(s.inviteToken):'')),api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+islandData[i].id)]);const topic=gradeTopics[s.grade][i];
-  const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===islandData[i].id));
-  const teacherBank=fromBank.filter(q=>Boolean(q.teacherId)&&q.teacherId===s.teacherId).sort(()=>Math.random()-.5);
-  const sharedBank=fromBank.filter(q=>!q.teacherId).sort(()=>Math.random()-.5);
-  const chosen=[...teacherBank,...sharedBank].slice(0,8);
-  const qs=config.mode==='manual'?chosen:[...chosen,...makeMission(s.grade,i,8)].slice(0,8);
-  if(qs.length<1)throw Error('Belum ada soal aktif untuk '+s.grade+' di '+islandData[i].name+'. Hubungi guru untuk mengisi Bank Soal.');
-  setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);navigate('quiz');say('Selamat datang di '+islandData[i].name+'. '+quizQuestionSpeech(qs[0],0));
- }catch(e:any){setError(e.message)}finally{setBusy(false)}}
+ async function startMission(i:number){
+  if(!needStudent())return;
+  const s=student!;
+  setBusy(true);setError('');
+  try{
+   const region=islandData[i].id;
+   // The 294 DOCX questions are the sole default source. No old random generator,
+   // no automatic mixing with stale/difficult question records in the database.
+   let qs:Question[]=await getCuratedMission(s.grade,region);
+   // Preserve the existing explicit "manual" mode as an optional teacher/admin override.
+   // Do not let empty manual banks prevent children from playing the curated questions.
+   try{
+    const config=await api('public/mission-config?grade='+encodeURIComponent(s.grade)+'&culture='+region);
+    if(config.mode==='manual'){
+     const r=await api('public/questions?grade='+encodeURIComponent(s.grade)+(s.inviteToken?'&token='+encodeURIComponent(s.inviteToken):''));
+     const topic=gradeTopics[s.grade][i];
+     const fromBank:(Question[])=(r.questions||[]).filter((q:Question)=>(!q.topic||q.topic===topic)&&(!q.cultureId||q.cultureId===region));
+     const teacherBank=fromBank.filter(q=>Boolean(q.teacherId)&&q.teacherId===s.teacherId);
+     const sharedBank=fromBank.filter(q=>!q.teacherId);
+     const chosen=[...teacherBank,...sharedBank].slice(0,7);
+     if(chosen.length)qs=chosen;
+    }
+   }catch{
+    // Packaged document bank remains playable if admin configuration is unavailable.
+   }
+   if(qs.length<1)throw Error('Soal '+s.grade+' untuk '+islandData[i].name+' belum tersedia.');
+   setIsland(i);setQuestions(qs);setQuestionIndex(0);setAnswer('');setCorrect(0);
+   navigate('quiz');
+   say('Selamat datang di '+islandData[i].name+'. '+quizQuestionSpeech(qs[0],0));
+  }catch(e:any){setError(e.message)}finally{setBusy(false)}
+ }
  async function finish(){if(!student)return;const wasDone=student.completed.includes(island+1),earned=correct*25+(wasDone?0:50)+(daily?0:20),completed=[...new Set([...student.completed,island+1])];
  const p:Student={...student,completed,xp:student.xp+earned,gamesPlayed:student.gamesPlayed+1,recent:[...student.recent,{region:islandData[island].name,score:correct,total:questions.length,date:new Date().toISOString()}].slice(-25)};
  setAwardedXP(earned);setStudent(p);navigate('result');try{const r=await api('progress/'+p.id,{method:'PUT',body:JSON.stringify(p)});setStudent(r.progress||p);setNotice('Hasil petualangan tersimpan!')}catch(e:any){setError('Progres belum tersinkron: '+e.message)}}
@@ -193,11 +215,12 @@ export default function App(){
  }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function importStarterQuestions(){const stage=islandData.findIndex(z=>z.id===modeCulture);if(stage<0)return;
   setBusy(true);setError('');try{
-   const questions=makeMission(modeGrade,stage,8).map(q=>({...q,active:true}));
+   const curated=await getCuratedMission(modeGrade,modeCulture);
+   const questions=curated.map(q=>({...q,topic:gradeTopics[modeGrade][stage],active:true}));
    const result=await api('admin/questions/bulk',{method:'POST',body:JSON.stringify({questions})});
    await refreshQuestions();
    setQuestionGrade(modeGrade);setQuestionTopic(gradeTopics[modeGrade][stage]);setQuestionRegion(modeCulture);setQuestionPage(1);
-   setNotice(result.count+' soal latihan bawaan berhasil diimpor ke Bank Soal, sekarang bisa diedit atau dihapus.');
+   setNotice(result.count+' soal dari dokumen Kurikulum Merdeka berhasil diimpor ke Bank Soal yang bisa diedit.');
   }catch(e:any){setError(e.message)}finally{setBusy(false)}}
  async function saveSchool(){try{const r=await api('school',{method:'PUT',body:JSON.stringify(school)});setSchool(r.school);setNotice('Identitas sekolah disimpan.')}catch(e:any){setError(e.message)}}
  async function excel(){try{const {default:ExcelJS}=await import('exceljs');const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet('Perkembangan Siswa');ws.addRow(['Nama','Kelas','XP','Pulau','Misi dimainkan','Diperbarui']);students.forEach(s=>ws.addRow([s.name,s.grade,s.xp,s.completed.length,s.gamesPlayed,s.updatedAt||'']));download(new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'laporan-nusantara-sd.xlsx')}catch(e:any){setError('Ekspor Excel gagal: '+e.message)}}
@@ -258,9 +281,9 @@ export default function App(){
     </details>
    </div>
   </main>}
-  {view==='materi'&&<main className="inner-page"><button className="back-link" onClick={mapScroll}><ArrowLeft size={16}/> Kembali ke Peta</button><span className="section-tag">📚 KURIKULUM MERDEKA · SEKOLAH DASAR</span><h1>Materi Matematika SD</h1><p>{student?'Materi Matematika '+student.grade+' yang sesuai dengan kelas saat login.':'Masuk sebagai siswa untuk melihat materi sesuai kelasmu.'}</p>{student?<div className="lesson-grid">{(gradeTopics[student.grade]||[]).map((topic,i)=><article key={topic} className="lesson-card"><CultureArt id={islandData[i].id} label={false}/><div><small>📍 {islandData[i].name} · MISI {i+1}</small><h3>{topic}</h3><p>{islandData[i].fact}</p></div></article>)}</div>:<div className="lesson-login-prompt"><span>📚</span><h2>Materi sesuai kelasmu</h2><p>Kelas dipilih satu kali di formulir masuk siswa.</p><button className="big-primary" onClick={()=>setModal(true)}>Masuk Siswa</button></div>}</main>}
+  {view==='materi'&&<main className="inner-page"><button className="back-link" onClick={mapScroll}><ArrowLeft size={16}/> Kembali ke Peta</button><span className="section-tag">📚 KURIKULUM MERDEKA · SEKOLAH DASAR</span><h1>Materi Matematika SD</h1><p>{student?'Materi Matematika '+student.grade+': '+curriculumFocus[student.grade]+'. Setiap pulau mempunyai 7 soal dari bank yang diunggah.':'Masuk sebagai siswa untuk melihat materi sesuai kelasmu.'}</p>{student?<div className="lesson-grid">{islandData.map((region,i)=><article key={region.id} className="lesson-card"><CultureArt id={islandData[i].id} label={false}/><div><small>📍 {islandData[i].name} · MISI {i+1}</small><h3>7 Soal Kontekstual · {region.name}</h3><p>{region.fact}</p></div></article>)}</div>:<div className="lesson-login-prompt"><span>📚</span><h2>Materi sesuai kelasmu</h2><p>Kelas dipilih satu kali di formulir masuk siswa.</p><button className="big-primary" onClick={()=>setModal(true)}>Masuk Siswa</button></div>}</main>}
   {view==='pencapaian'&&<main className="inner-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Beranda</button><span className="section-tag">⭐ KOLEKSI PENGHARGAAN</span><h1>Galeri Pencapaian</h1><p>{student?'Selamat, '+student.name+'! Lihat bintang dan lencana yang telah kamu peroleh.':'Masuk untuk menyimpan pencapaian petualanganmu.'}</p>{student&&<div className="achievement-grid achievement-summary"><div><b>{student.xp} XP</b><small>Nilai perjalanan</small></div><div><b>{student.gamesPlayed}</b><small>Kuis diselesaikan</small></div><div><b>{student.completed.length}/7</b><small>Pulau dijelajahi</small></div></div>}<div className="achievement-grid">{[0,1,2,3,4,5,6].map(i=><div key={i} className={!student?.completed.includes(i+1)?'locked':''}><span className="big-emoji">{student?.completed.includes(i+1)?'🌟':'🔒'}</span><b>{islandData[i].name}</b><small>{student?.completed.includes(i+1)?'Misi selesai!':'Belum dijelajahi'}</small></div>)}</div>{student&&<details className="student-audio-settings"><summary><Headphones size={17}/> Pengaturan Suara</summary><div className="student-audio-controls"><button type="button" className="outline-button" aria-pressed={voice} onClick={toggleNarrator}>{voice?<Headphones size={17}/>:<VolumeX size={17}/>} Narasi: {voice?'Aktif':'Nonaktif'}</button><button type="button" className="outline-button" aria-pressed={music} onClick={toggleMusic}>{music?<Volume2 size={17}/>:<VolumeX size={17}/>} Musik: {music?'Aktif':'Nonaktif'}</button></div></details>}{student?<div className="profile-buttons"><button className="big-primary" onClick={certificate}><Download size={17}/> Unduh Sertifikat PDF</button><button onClick={signout} className="outline-button"><LogOut size={16}/> Keluar Profil</button></div>:<button className="big-primary" onClick={()=>setModal(true)}>Masuk Sekarang</button>}</main>}
-  {view==='quiz'&&questions.length>0&&<main className="quiz-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke Peta</button><div className="quiz-heading"><div><span>🧭 MISI PULAU {islandData[island].name.toUpperCase()}</span><h1>{gradeTopics[chosenGrade][island]}</h1><p>Kenali budaya {islandData[island].name}, selesaikan soal, kumpulkan bintang!</p></div><div className="round-badge">⭐ {correct} benar</div></div><div className="quiz-track"><div style={{width:((questionIndex+1)/questions.length*100)+'%'}}/></div>
+  {view==='quiz'&&questions.length>0&&<main className="quiz-page"><button className="back-link" onClick={()=>navigate('home')}><ArrowLeft size={16}/> Kembali ke Peta</button><div className="quiz-heading"><div><span>🧭 MISI PULAU {islandData[island].name.toUpperCase()}</span><h1>Matematika {student?.grade||chosenGrade}</h1><p>{curriculumFocus[student?.grade||chosenGrade]}. Kenali budaya {islandData[island].name} dan selesaikan 7 soal dari bank resmi yang diunggah.</p></div><div className="round-badge">⭐ {correct} benar</div></div><div className="quiz-track"><div style={{width:((questionIndex+1)/questions.length*100)+'%'}}/></div>
    <div className="quiz-columns"><section className="quiz-scene"><CultureArt id={islandData[island].id}/><h2>🌺 Tahukah Kamu?</h2><p>{islandData[island].fact}</p><div className="info-tip">🎓 Selesaikan {questions.length} soal untuk mendapat hadiah XP dan bintang.</div></section><section className="quiz-paper"><div className="quiz-top"><span>SOAL {questionIndex+1} DARI {questions.length}</span><span>{chosenGrade}</span></div>
    <div className="quiz-audio-tools" aria-label="Pengaturan suara kuis">
     <button type="button" className="quiz-read-btn" onClick={()=>say(quizQuestionSpeech(questions[questionIndex],questionIndex),true)}><Volume2 size={19}/> 🔊 Bacakan Soal</button>
@@ -271,7 +294,7 @@ export default function App(){
    {questions[questionIndex].imageUrl&&(/^(https:\/\/)/.test(questions[questionIndex].imageUrl!)||questions[questionIndex].imageUrl!.startsWith('/api/question-images/file/'))&&<img className="extra-media" src={questions[questionIndex].imageUrl} alt="Ilustrasi tambahan soal" loading="lazy"/>}
    {questions[questionIndex].videoUrl&&(questions[questionIndex].videoUrl!.startsWith('/api/question-media/file/video/')?<video className="extra-media video" controls preload="metadata" src={questions[questionIndex].videoUrl!} aria-label="Video pendukung soal"/>:videoId(questions[questionIndex].videoUrl!)?<iframe className="extra-media video" src={'https://www.youtube-nocookie.com/embed/'+videoId(questions[questionIndex].videoUrl!)} title="Video pelajaran" allowFullScreen/>:null)}
    {questions[questionIndex].audioUrl&&(questions[questionIndex].audioUrl!.startsWith('/api/question-media/file/audio/')||questions[questionIndex].audioUrl!.startsWith('https://'))&&<audio controls preload="metadata" src={questions[questionIndex].audioUrl!}/>}
-   <MathHelper key={island+'-'+questionIndex} question={questions[questionIndex].question} grade={student?.grade||chosenGrade} topic={questions[questionIndex].topic||gradeTopics[student?.grade||chosenGrade]?.[island]||''} answered={Boolean(answer)}/>
+   <MathHelper key={island+'-'+questionIndex} question={questions[questionIndex].question} grade={student?.grade||chosenGrade} topic={questions[questionIndex].source==='docx-bank-v1'?'':questions[questionIndex].topic||gradeTopics[student?.grade||chosenGrade]?.[island]||''} answered={Boolean(answer)}/>
    <div className="answer-choices">{questions[questionIndex].options.map((option,i)=><button key={i} disabled={!!answer} className={answer?(option===questions[questionIndex].answer?'right':option===answer?'not-right':''):''} onClick={()=>{setAnswer(option);quizSound(option===questions[questionIndex].answer);if(option===questions[questionIndex].answer)setCorrect(x=>x+1);say(option===questions[questionIndex].answer?'Benar! Kamu hebat!':'Coba lagi besok ya. Perhatikan pembahasan.')}}><span>{String.fromCharCode(65+i)}</span><b>{option}</b>{answer&&option===questions[questionIndex].answer&&<Check size={21}/>}</button>)}</div>
    {answer&&<div className="quiz-explanation"><b>{answer===questions[questionIndex].answer?'🎉 Hebat, jawabanmu benar!':'💡 Ayo pahami pembahasannya!'}</b><p>{questions[questionIndex].explanation}</p></div>}
    <button className="big-primary next-btn" disabled={!answer} onClick={()=>{if(questionIndex+1===questions.length)finish();else{setQuestionIndex(questionIndex+1);setAnswer('');say(quizQuestionSpeech(questions[questionIndex+1],questionIndex+1))}}}>{questionIndex+1===questions.length?'Selesaikan Misi! 🎉':'Lanjut Soal Berikutnya'} <ChevronRight size={18}/></button></section></div>
@@ -308,7 +331,7 @@ export default function App(){
      </div>
      <details className="admin-advanced question-source-details"><summary>⚙️ Sumber soal & pengaturan lanjutan</summary>
      <div className="question-mode-panel">
-      <div><h3>🎛️ Sumber Soal Per Kelas & Pulau</h3><p>Pilih soal campuran, atau gunakan hanya soal yang kamu kelola melalui CRUD. Soal bawaan dapat diimpor agar bisa diedit dan dihapus.</p></div>
+      <div><h3>🎛️ Sumber Soal Per Kelas & Pulau</h3><p>Pilih soal campuran, atau gunakan hanya soal yang kamu kelola melalui CRUD. Paket standar memakai 294 soal DOCX (7 per pulau per kelas); mode manual tetap mendukung bank soal buatan Guru/Admin. Soal DOCX dapat diimpor untuk diedit dan dikelola.</p></div>
       <div className="question-mode-controls">
        <label>Kelas<select value={modeGrade} onChange={e=>setModeGrade(e.target.value)}>{grades.map(g=><option key={g}>{g}</option>)}</select></label>
        <label>Pulau<select value={modeCulture} onChange={e=>setModeCulture(e.target.value)}>{islandData.map(z=><option key={z.id} value={z.id}>{z.name}</option>)}</select></label>
@@ -317,7 +340,7 @@ export default function App(){
       </div>
       <div className="question-mode-footer">
        <span>📚 {bank.filter(q=>q.grade===modeGrade&&(!q.topic||q.topic===gradeTopics[modeGrade][islandData.findIndex(z=>z.id===modeCulture)])&&(!q.cultureId||q.cultureId===modeCulture)&&q.active!==false).length} soal aktif dari bank tersedia untuk misi ini. {modeValue==='manual'?'Mode hanya bank: misi membutuhkan sedikitnya satu soal aktif.':'Mode campuran: soal otomatis akan melengkapi kuis.'}</span>
-       <button className="outline-button" disabled={busy} onClick={importStarterQuestions}><Plus size={16}/> Impor 8 Soal Bawaan ke Bank</button>
+       <button className="outline-button" disabled={busy} onClick={importStarterQuestions}><Plus size={16}/> Impor 7 Soal DOCX ke Bank</button>
       </div>
      </div>
      </details>
@@ -388,7 +411,7 @@ export default function App(){
        <div className="question-media-links">{q.imageUrl&&<span>🖼️ Gambar</span>}{q.videoUrl&&<span>🎬 Video</span>}{q.audioUrl&&<span>🔊 Audio</span>}</div>
        <div className="question-manage-actions"><button className="outline-button" disabled={busy} onClick={()=>editQuestion(q)}>✏️ Edit Soal</button>{confirmDelete===q.id?<div className="delete-confirm"><strong>Hapus soal ini?</strong><button className="danger-button" disabled={busy} onClick={()=>deleteQuestion(q)}>Ya, Hapus</button><button className="outline-button" onClick={()=>setConfirmDelete(null)}>Batal</button></div>:<button className="danger-outline" disabled={busy||!q.id} onClick={()=>setConfirmDelete(q.id||null)}>🗑️ Hapus</button>}</div>
       </article>)}
-      {filteredQuestions.length===0&&<div className="question-empty"><span>📭</span><h3>Belum ada soal untuk filter ini</h3><p>Tambahkan soal, pilih kelas lain, atau reset filter. Soal bawaan misi tetap tersedia secara otomatis.</p><button className="big-primary" onClick={openNewQuestion}><Plus size={16}/> Tambah Soal</button></div>}
+      {filteredQuestions.length===0&&<div className="question-empty"><span>📭</span><h3>Belum ada soal untuk filter ini</h3><p>Tambahkan soal, pilih kelas lain, atau reset filter. Paket 294 soal DOCX untuk permainan tersedia secara otomatis; soal buatan Guru/Admin ditampilkan di sini.</p><button className="big-primary" onClick={openNewQuestion}><Plus size={16}/> Tambah Soal</button></div>}
      </div>
      {pageCount>1&&<div className="question-pagination"><button className="outline-button" disabled={safePage===1} onClick={()=>setQuestionPage(p=>Math.max(1,p-1))}>← Sebelumnya</button><span>Halaman {safePage} dari {pageCount}</span><button className="outline-button" disabled={safePage===pageCount} onClick={()=>setQuestionPage(p=>Math.min(pageCount,p+1))}>Berikutnya →</button></div>}
     </section>}
