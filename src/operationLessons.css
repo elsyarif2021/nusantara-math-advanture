@@ -1,0 +1,28 @@
+.operation-lessons{margin:24px 0 34px;background:#fffdf5;border:2px solid #d8e9f3;border-radius:22px;overflow:hidden;box-shadow:0 5px 0 #d4e7ed}
+.operation-head{display:flex;align-items:center;gap:15px;padding:19px 22px;background:linear-gradient(110deg,#d3f6fd,#f9f1cc)}
+.operation-icon{font-size:48px}.operation-head small{color:#23638e;font-size:11px;font-weight:900;letter-spacing:.07em}
+.operation-head h2{color:#1d4f7d;margin:3px 0;font:900 clamp(21px,3vw,30px) 'Baloo 2',sans-serif}
+.operation-head p{margin:3px 0;color:#416c86;font-weight:700;font-size:13px}
+.operation-switch{display:flex;gap:10px;padding:14px 18px 0;flex-wrap:wrap}
+.operation-switch button{border:2px solid #b7dce9;border-radius:15px;padding:12px 20px;background:white;color:#256486;font-weight:900;cursor:pointer}
+.operation-switch button.selected{background:#217cba;color:white;border-color:#217cba}
+.operation-explain,.operation-practice{margin:16px 18px;padding:19px 20px;background:white;border:1px solid #d5e5ec;border-radius:17px}
+.operation-explain h3,.operation-practice h3{margin:0 0 9px;color:#20517c;font:900 22px 'Baloo 2',sans-serif}
+.operation-explain p{font-size:14px;line-height:1.65;color:#395872;margin:8px 0}
+.operation-explain .operation-level-tip{color:#886019;font-weight:800}
+.operation-equation{display:flex;gap:clamp(8px,3vw,26px);align-items:center;justify-content:center;background:#edf9fe;border-radius:15px;padding:15px 10px;margin:15px 0;font-size:clamp(27px,5vw,44px);font-weight:900;color:#1e6da3}
+.operation-equation strong{color:#c15d29}.operation-steps{text-align:center;font-weight:900!important}
+.operation-objects{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;margin:14px auto}
+.operation-object-group{padding:7px;display:flex;gap:2px;flex-wrap:wrap;max-width:150px;border:2px dashed #a9cadc;border-radius:12px}
+.operation-object-group span{font-size:20px}
+.operation-context{padding:10px 13px;background:#fff9e0;border-radius:11px}
+.operation-practice-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}.operation-practice-head span{font-size:12px;font-weight:900;color:#46738e}
+.operation-question{font-size:16px;font-weight:800;color:#284f72;line-height:1.55}
+.operation-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.operation-answers button{border:2px solid #cae5ef;background:#f4faff;border-radius:12px;font-size:16px;font-weight:900;color:#2e648a;padding:12px;cursor:pointer}
+.operation-answers button:disabled{cursor:default}.operation-answers button.right{background:#e0f7e8;border-color:#67bf86;color:#17643b}
+.operation-answers button.wrong{background:#ffe8e5;border-color:#e48c83;color:#a03530}
+.operation-feedback{background:#f0faee;border:1px solid #b4dbb4;border-radius:14px;margin-top:14px;padding:13px 15px;font-size:14px;line-height:1.6;color:#2c6240}
+.operation-feedback p{margin:6px 0 11px}.operation-feedback button{background:#2679b7;color:white;border:0;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:900}
+.operation-footnote{padding:0 20px 17px;font-size:12px!important;color:#5b7c90}
+@media(max-width:600px){.operation-head{padding:14px;align-items:flex-start}.operation-icon{font-size:36px}.operation-head p{font-size:12px}.operation-switch{padding:10px 12px 0}.operation-switch button{flex:1;padding:10px 8px}.operation-explain,.operation-practice{margin:12px;padding:14px}.operation-answers{gap:7px}.operation-answers button{padding:11px 8px}.operation-objects{gap:5px}.operation-object-group{gap:0;padding:5px}.operation-object-group span{font-size:17px}}
