@@ -26,7 +26,19 @@ export default async function handler(req,res){
  if(!['GET','POST','PUT','DELETE'].includes(method))return send(res,405,{error:'Metode tidak tersedia'});
  const origin=req.headers.origin, host=req.headers['x-forwarded-host']||req.headers.host;
  if(method!=='GET'&&origin&&new URL(origin).host!==host)return send(res,403,{error:'Origin tidak diizinkan'});
- if(path==='health'&&method==='GET')return send(res,200,{ok:true,storage:storeReady(),admin:adminReady(),platform:'vercel'});
+ if(path==='health'&&method==='GET'){
+  if(!storeReady())return send(res,503,{ok:false,storage:false,storageAccess:'missing_token',admin:adminReady(),platform:'vercel',message:'Token Blob tidak terpasang di Vercel Production.'});
+  try{
+   // A non-mutating authenticated read: a missing document (null) is fine,
+   // but 403 means the configured token/store/access mode is wrong.
+   await get('config/school.json',{access:'private'});
+   return send(res,200,{ok:true,storage:true,storageAccess:'reachable',admin:adminReady(),platform:'vercel'});
+  }catch(error){
+   const forbidden=/\\b403\\b|forbidden|access denied|not authorized|unauthorized/i.test(String(error?.message||''));
+   return send(res,503,{ok:false,storage:false,storageAccess:forbidden?'forbidden':'unreachable',admin:adminReady(),platform:'vercel',
+    message:forbidden?'Vercel Blob menolak akses (403). Periksa koneksi dan izin Private Blob store yang sudah ada.':'Vercel Blob belum dapat dibaca; periksa koneksi storage.'});
+  }
+ }
  if(!storeReady())return send(res,503,{error:'Penyimpanan belum diaktifkan. Hubungkan private Vercel Blob ke proyek ini.'});
  try{
   if(path==='question-media/upload'&&method==='POST'){
@@ -264,5 +276,10 @@ export default async function handler(req,res){
    }
   }
   return send(res,404,{error:'Endpoint tidak ditemukan'});
- }catch(err){console.error('NMA API ERROR',err?.message||err);return send(res,503,{error:'Layanan penyimpanan atau API gagal. Periksa log Vercel.'});}
+ }catch(err){
+  console.error('NMA API ERROR',err?.message||err);
+  const forbidden=/\\b403\\b|forbidden|access denied|not authorized|unauthorized/i.test(String(err?.message||''));
+  if(forbidden)return send(res,503,{code:'BLOB_ACCESS_DENIED',error:'Penyimpanan Nusantara Math Adventure belum dapat diakses (Vercel Blob 403). Hubungi Super Admin untuk memeriksa koneksi Private Blob store.'});
+  return send(res,503,{error:'Layanan penyimpanan atau API gagal. Periksa log Vercel.'});
+ }
 }

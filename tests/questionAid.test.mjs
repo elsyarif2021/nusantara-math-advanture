@@ -53,7 +53,8 @@ test('conceptual questions never force unrelated calculator operators and unknow
 test('UI mounts actual question topic, not just fixed island topic and preserves on-demand calculator',()=>{
  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
  const helper=readFileSync(new URL('../src/MathHelper.tsx',import.meta.url),'utf8');
- assert.match(app,/topic=\{questions\[questionIndex\]\.topic\|\|gradeTopics/);
+ assert.match(app,/topic=\{questions\[questionIndex\]\.source==='docx-bank-v1'/);
+ assert.match(app,/questions\[questionIndex\]\.topic\|\|gradeTopics/);
  assert.match(helper,/getQuestionAid\(question,topic,grade\)/);
  assert.match(helper,/Buka Kalkulator & Panduan/);
  assert.match(helper,/Buka Panduan Sesuai Soal/);
