@@ -13,6 +13,10 @@ async function documents(){
  const client=await clientPromise;
  return client.db(process.env.MONGODB_DB_NAME||undefined).collection('nma_documents');
 }
+export async function mongoImageCollection(){
+ const collection=await documents();
+ return collection.db.collection('nma_question_images');
+}
 export async function mongoDocPing(){
  const collection=await documents();
  await collection.db.admin().ping();
