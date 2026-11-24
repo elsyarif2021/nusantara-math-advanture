@@ -3,7 +3,7 @@ import {MongoClient} from 'mongodb';
 // MongoDB keeps JSON documents in the same pathname namespace as the legacy
 // private Blob store. Existing Blob objects are never deleted or overwritten.
 let clientPromise;
-async function documents(){
+async function database(){
  const uri=process.env.MONGODB_URI;
  if(!uri)throw Error('MONGODB_URI belum terhubung ke proyek.');
  if(!clientPromise){
@@ -11,15 +11,12 @@ async function documents(){
   clientPromise=client.connect().then(()=>client).catch(error=>{clientPromise=undefined;throw error});
  }
  const client=await clientPromise;
- return client.db(process.env.MONGODB_DB_NAME||undefined).collection('nma_documents');
+ return client.db(process.env.MONGODB_DB_NAME||undefined);
 }
-export async function mongoImageCollection(){
- const collection=await documents();
- return collection.db.collection('nma_question_images');
-}
+async function documents(){return (await database()).collection('nma_documents')}
+export async function mongoImageCollection(){return (await database()).collection('nma_question_images')}
 export async function mongoDocPing(){
- const collection=await documents();
- await collection.db.admin().ping();
+ await (await database()).command({ping:1});
  return true;
 }
 export async function mongoDocRead(path){
