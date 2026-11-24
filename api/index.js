@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import {Readable} from 'node:stream';
 import {get,put,list as blobList} from '@vercel/blob';
 import {mongoDocPing,mongoDocRead,mongoDocWrite,mongoDocList} from './mongoDocuments.js';
+import {mongoImagePut,mongoImageGet} from './mongoImages.js';
 import {handleUpload} from '@vercel/blob/client';
 import {normalizeQuestion,questionIdOK,readQuestionBank} from './questionBank.js';
 import {handleTeacherRoutes,resolveTeacher} from './teacherRoutes.js';
@@ -126,15 +127,28 @@ export default async function handler(req,res){
    }else return send(res,400,{error:'Jenis akses pengunggah tidak valid.'});
    let parsed;try{parsed=parseQuestionImage(req.body)}catch(e){return send(res,400,{error:e.message})}
    const location=createQuestionImageLocation(owner,parsed.contentType);
-   await put(location.pathname,parsed.buffer,{access:'private',contentType:parsed.contentType,allowOverwrite:false,addRandomSuffix:false});
+   if(usingMongo())await mongoImagePut(location.pathname,parsed.buffer,parsed.contentType);
+   else await put(location.pathname,parsed.buffer,{access:'private',contentType:parsed.contentType,allowOverwrite:false,addRandomSuffix:false});
    return send(res,201,{uploaded:true,url:location.url,size:parsed.buffer.length,contentType:parsed.contentType});
   }
   if(path.startsWith('question-images/file/')&&method==='GET'){
    const location=imageStorageFromRoute(path);
    if(!location)return send(res,404,{error:'Gambar soal tidak ditemukan.'});
-   const blob=await get(location.pathname,{access:'private'});
-   if(!blob)return send(res,404,{error:'Gambar soal tidak ditemukan.'});
-   const buffer=Buffer.from(await new Response(blob.stream).arrayBuffer());
+   // New images live in MongoDB. Older Blob images remain accessible when Blob recovers.
+   const stored=usingMongo()?await mongoImageGet(location.pathname):null;
+   let buffer;
+   if(stored){buffer=stored.buffer}
+   else{
+    if(!process.env.BLOB_READ_WRITE_TOKEN)return send(res,404,{error:'Gambar lama belum tersedia dari penyimpanan arsip.'});
+    try{
+     const blob=await get(location.pathname,{access:'private'});
+     if(!blob)return send(res,404,{error:'Gambar soal tidak ditemukan.'});
+     buffer=Buffer.from(await new Response(blob.stream).arrayBuffer());
+    }catch(e){
+     console.error('LEGACY IMAGE READ ERROR',e?.message||e);
+     return send(res,503,{error:'Gambar lama sementara tidak dapat diakses. Foto baru tetap bisa diunggah melalui MongoDB.'});
+    }
+   }
    res.setHeader('Content-Type',location.contentType);
    res.setHeader('Cache-Control','public, max-age=31536000, immutable');
    res.setHeader('X-Content-Type-Options','nosniff');
